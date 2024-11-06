@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Horário</title>
     <style>
-        /* General body styling */
+
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f9;
@@ -17,14 +17,12 @@
             padding-top: 50px;
         }
 
-        /* Header style */
         h1 {
             font-size: 2em;
             margin-bottom: 20px;
             color: #333;
         }
 
-        /* Styling the file input label */
         .custom-file-input {
             padding: 12px 24px;
             background-color: #3b6e91;
@@ -38,22 +36,19 @@
             box-shadow: 0 4px 6px rgba(0, 123, 255, 0.1);
         }
 
-        /* Hover effect for the custom file input button */
         .custom-file-input:hover {
             background-color: #335a74;
         }
 
-        /* Active state for the custom file input button */
+
         .custom-file-input:active {
-            transform: scale(0.95); /* Slightly reduce the size when clicked */
+            transform: scale(0.95);
         }
 
-        /* Hidden default file input */
         #csvFileInput {
             display: none;
         }
 
-        /* File name display area */
         #fileName {
             font-size: 1.1em;
             margin-top: 20px;
@@ -61,16 +56,15 @@
         }
 
         table {
-            width: 80%; /* You can adjust this as needed */
+            width: 80%;
             border-collapse: collapse;
             margin-top: 30px;
             display: none;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-left: auto; /* Automatically adds margin on the left */
-            margin-right: auto; /* Automatically adds margin on the right */
+            margin-left: auto;
+            margin-right: auto;
         }
 
-        /* Table header styling */
         th {
             position: sticky;
             top: 0;
@@ -80,7 +74,6 @@
             text-align: left;
         }
 
-        /* Table row styling */
         td {
             padding: 10px;
             text-align: left;
@@ -98,36 +91,33 @@
 
             position: sticky;
             left: 0;
-            z-index: 2; /* Higher z-index for column 1 */
+            z-index: 2;
             width: 100px;
-            background-color: #f4f4f9; /* Ensuring background is consistent */
+            background-color: #f4f4f9;
         }
 
         th:nth-child(2){
             position: sticky;
-            left: 85px; /* Adjust this based on the width of the first column */
+            left: 85px;
             z-index: 1;
         }
-        /* Sticky column styling for the second column */
 
         td:nth-child(2) {
             position: sticky;
-            left: 85px; /* Adjust this based on the width of the first column */
-            z-index: 1; /* Column 2 behind column 1 */
-            background-color: #f4f4f9; /* Ensuring background is consistent */
+            left: 85px;
+            z-index: 1;
+            background-color: #f4f4f9;
         }
 
-        /* Wrapper styling */
         #csvTableWrapper {
             overflow-x: auto;
             max-width: 100%;
             margin-top: 20px;
-            margin-left: auto; /* Adds left margin */
-            margin-right: auto; /* Adds right margin */
+            margin-left: auto;
+            margin-right: auto;
             display: block;
         }
 
-        /* Pagination styling */
         .pagination {
             display: flex;
             justify-content: center;
@@ -145,18 +135,15 @@
             transition: background-color 0.2s ease-in-out;
         }
 
-        /* Pagination button hover effect */
         .pagination button:hover, .pagination input:hover {
             background-color: #f0f0f0;
         }
 
-        /* Pagination input box style */
         .pagination input {
             width: 80px;
             text-align: center;
         }
 
-        /* Pagination button active state */
         .pagination button:active {
             transform: scale(0.98);
         }
@@ -235,13 +222,11 @@
             });
         }
 
-        // Function to create pagination controls
         function createPaginationControls() {
-            const totalPages = Math.ceil((csvData.length - 1) / rowsPerPage); // Adjust total pages for pagination
+            const totalPages = Math.ceil((csvData.length - 1) / rowsPerPage);
             const paginationControls = document.getElementById('paginationControls');
-            paginationControls.innerHTML = ''; // Clear previous pagination buttons
+            paginationControls.innerHTML = '';
 
-            // First page button
             const firstButton = document.createElement('button');
             firstButton.textContent = "1";
             firstButton.addEventListener('click', () => {
@@ -250,7 +235,6 @@
             });
             paginationControls.appendChild(firstButton);
 
-            // Input for selecting a page in the middle
             const selectedPage = document.createElement("input");
             selectedPage.type = 'number';
             selectedPage.placeholder = 'Insert Page Number';
@@ -258,7 +242,6 @@
             selectedPage.max = totalPages;
             selectedPage.style.width = '120px';
 
-            // Event listener to detect when the user presses 'Enter'
             selectedPage.addEventListener('keypress', (event) => {
                 if (event.key === 'Enter') {
                     const page = parseInt(selectedPage.value);
@@ -272,7 +255,6 @@
             });
             paginationControls.appendChild(selectedPage);
 
-            // Last page button
             const lastButton = document.createElement('button');
             lastButton.textContent = totalPages.toString();
             lastButton.addEventListener('click', () => {
