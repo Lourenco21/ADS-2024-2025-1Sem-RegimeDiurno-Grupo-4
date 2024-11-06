@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Horário</title>
+    <style>
+        .pagination {
+            display: flex;
+            margin-top: 20px;
+            gap: 5px;
+        }
+        .pagination button {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+         #csvFileInput {
+            display: none;
+        }
+        .custom-file-input {
+            padding: 12px 24px;
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            display: inline-block;
+            transition: background-color 0.3s, transform 0.2s ease-in-out;
+        }
+
+        /* Hover effect to change the background color */
+        .custom-file-input:hover {
+            background-color: #0056b3;
+        }
+        /* Active state effect (when clicked) */
+        .custom-file-input:active {
+            transform: scale(0.90); /* Slightly reduce the size when clicked */
+        }
+        #csvTable {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Select a CSV File</h1>
+
+    <label for="csvFileInput" class="custom-file-input">Choose a CSV File</label>
+    <input type="file" id="csvFileInput" accept=".csv" />
+    <p id="fileName"></p>
+
+    <table id="csvTable" border="1">
+    </table>
+
+    <div class="pagination" id="paginationControls">
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('csvFileInput');
+        const fileNameDisplay = document.getElementById('fileName');
+        const rowsPerPage = 30; // Set the number of rows per page
+        let csvData = []; // Array to store CSV data
+        let currentPage = 1; // Track the current page
+
+        // Event listener for file selection
+        fileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                csvData = text.split('\n').map(row => row.split(';'));
+                currentPage = 1; // Reset to the first page
+                displayPage(currentPage);
+                createPaginationControls();
+                // Update the displayed file name
+                fileNameDisplay.textContent = `Selected file: ${file.name}`;
+
+                document.getElementById('csvTable').style.display = 'table';
+            };
+            reader.readAsText(file);
+        });
+
+        // Function to display the current page of the table
+        function displayPage(page) {
+            const start = (page - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            const tableData = csvData.slice(1); // Exclude the header row for pagination
+            const paginatedData = tableData.slice(start, end);
+            const table = document.getElementById('csvTable');
+            table.innerHTML = ''; // Clear previous table data
+
+            // Create and append the header row
+            const headerRow = document.createElement('tr');
+            csvData[0].forEach(cellText => {
+                const cell = document.createElement('th'); // Use <th> for the header
+                cell.textContent = cellText.trim();
+                headerRow.appendChild(cell);
+            });
+            table.appendChild(headerRow);
+
+            // Add paginated data
+            paginatedData.forEach(rowArray => {
+                const row = document.createElement('tr');
+                rowArray.forEach(cellText => {
+                    const cell = document.createElement('td');
+                    cell.textContent = cellText.trim();
+                    row.appendChild(cell);
+                });
+                table.appendChild(row);
+            });
+        }
+
+        // Function to create pagination controls
+        function createPaginationControls() {
+            const totalPages = Math.ceil((csvData.length - 1) / rowsPerPage); // Adjust total pages for pagination
+            const paginationControls = document.getElementById('paginationControls');
+            paginationControls.innerHTML = ''; // Clear previous pagination buttons
+
+            // First page button
+            const firstButton = document.createElement('button');
+            firstButton.textContent = "1";
+            firstButton.addEventListener('click', () => {
+                currentPage = 1;
+                displayPage(currentPage);
+            });
+            paginationControls.appendChild(firstButton);
+
+            // Input for selecting a page in the middle
+            const selectedPage = document.createElement("input");
+            selectedPage.type = 'number';
+            selectedPage.placeholder = 'Insert Page Number';
+            selectedPage.min = 1;
+            selectedPage.max = totalPages;
+            selectedPage.style.width = '120px';
+
+            // Event listener to detect when the user presses 'Enter'
+            selectedPage.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    const page = parseInt(selectedPage.value);
+                    if (page >= 1 && page <= totalPages) {
+                        currentPage = page;
+                        displayPage(currentPage);
+                    } else {
+                        alert(`Please enter a number between 1 and ${totalPages}`);
+                    }
+                }
+            });
+            paginationControls.appendChild(selectedPage);
+
+            // Last page button
+            const lastButton = document.createElement('button');
+            lastButton.textContent = totalPages.toString();
+            lastButton.addEventListener('click', () => {
+                currentPage = totalPages;
+                displayPage(currentPage);
+            });
+            paginationControls.appendChild(lastButton);
+        }
+    </script>
+</body>
+</html>
