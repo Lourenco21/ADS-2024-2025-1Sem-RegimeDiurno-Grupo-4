@@ -4,21 +4,30 @@
     <meta charset="UTF-8">
     <title>Horário</title>
     <style>
-        .pagination {
+        /* General body styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
             display: flex;
-            margin-top: 20px;
-            gap: 5px;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 50px;
         }
-        .pagination button {
-            padding: 5px 10px;
-            cursor: pointer;
+
+        /* Header style */
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+            color: #333;
         }
-         #csvFileInput {
-            display: none;
-        }
+
+        /* Styling the file input label */
         .custom-file-input {
             padding: 12px 24px;
-            background-color: #007bff;
+            background-color: #3b6e91;
             color: white;
             font-size: 16px;
             cursor: pointer;
@@ -26,19 +35,133 @@
             border-radius: 5px;
             display: inline-block;
             transition: background-color 0.3s, transform 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 123, 255, 0.1);
         }
 
-        /* Hover effect to change the background color */
+        /* Hover effect for the custom file input button */
         .custom-file-input:hover {
-            background-color: #0056b3;
+            background-color: #335a74;
         }
-        /* Active state effect (when clicked) */
+
+        /* Active state for the custom file input button */
         .custom-file-input:active {
-            transform: scale(0.90); /* Slightly reduce the size when clicked */
+            transform: scale(0.95); /* Slightly reduce the size when clicked */
         }
-        #csvTable {
+
+        /* Hidden default file input */
+        #csvFileInput {
             display: none;
         }
+
+        /* File name display area */
+        #fileName {
+            font-size: 1.1em;
+            margin-top: 20px;
+            color: #555;
+        }
+
+        table {
+            width: 80%; /* You can adjust this as needed */
+            border-collapse: collapse;
+            margin-top: 30px;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-left: auto; /* Automatically adds margin on the left */
+            margin-right: auto; /* Automatically adds margin on the right */
+        }
+
+        /* Table header styling */
+        th {
+            position: sticky;
+            top: 0;
+            background-color: #3b6e91;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+
+        /* Table row styling */
+        td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th:nth-child(1){
+            position: sticky;
+            left: 0;
+            z-index: 2;
+            width: 100px;
+        }
+
+        td:nth-child(1) {
+
+            position: sticky;
+            left: 0;
+            z-index: 2; /* Higher z-index for column 1 */
+            width: 100px;
+            background-color: #f4f4f9; /* Ensuring background is consistent */
+        }
+
+        th:nth-child(2){
+            position: sticky;
+            left: 85px; /* Adjust this based on the width of the first column */
+            z-index: 1;
+        }
+        /* Sticky column styling for the second column */
+
+        td:nth-child(2) {
+            position: sticky;
+            left: 85px; /* Adjust this based on the width of the first column */
+            z-index: 1; /* Column 2 behind column 1 */
+            background-color: #f4f4f9; /* Ensuring background is consistent */
+        }
+
+        /* Wrapper styling */
+        #csvTableWrapper {
+            overflow-x: auto;
+            max-width: 100%;
+            margin-top: 20px;
+            margin-left: auto; /* Adds left margin */
+            margin-right: auto; /* Adds right margin */
+            display: block;
+        }
+
+        /* Pagination styling */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 10px;
+        }
+
+        .pagination button, .pagination input {
+            padding: 8px 16px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #f7f7f7;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        /* Pagination button hover effect */
+        .pagination button:hover, .pagination input:hover {
+            background-color: #f0f0f0;
+        }
+
+        /* Pagination input box style */
+        .pagination input {
+            width: 80px;
+            text-align: center;
+        }
+
+        /* Pagination button active state */
+        .pagination button:active {
+            transform: scale(0.98);
+        }
+
+
     </style>
 </head>
 <body>
@@ -48,20 +171,24 @@
     <input type="file" id="csvFileInput" accept=".csv" />
     <p id="fileName"></p>
 
+    <div id="csvTableWrapper">
     <table id="csvTable" border="1">
     </table>
+    </div>
 
     <div class="pagination" id="paginationControls">
     </div>
+    <br>
+    <br>
 
     <script>
         const fileInput = document.getElementById('csvFileInput');
         const fileNameDisplay = document.getElementById('fileName');
-        const rowsPerPage = 30; // Set the number of rows per page
-        let csvData = []; // Array to store CSV data
-        let currentPage = 1; // Track the current page
+        const rowsPerPage = 10;
+        let csvData = [];
+        let currentPage = 1;
 
-        // Event listener for file selection
+
         fileInput.addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -70,10 +197,9 @@
             reader.onload = function(e) {
                 const text = e.target.result;
                 csvData = text.split('\n').map(row => row.split(';'));
-                currentPage = 1; // Reset to the first page
+                currentPage = 1;
                 displayPage(currentPage);
                 createPaginationControls();
-                // Update the displayed file name
                 fileNameDisplay.textContent = `Selected file: ${file.name}`;
 
                 document.getElementById('csvTable').style.display = 'table';
@@ -81,25 +207,23 @@
             reader.readAsText(file);
         });
 
-        // Function to display the current page of the table
         function displayPage(page) {
             const start = (page - 1) * rowsPerPage;
             const end = start + rowsPerPage;
-            const tableData = csvData.slice(1); // Exclude the header row for pagination
+            const tableData = csvData.slice(1);
             const paginatedData = tableData.slice(start, end);
             const table = document.getElementById('csvTable');
-            table.innerHTML = ''; // Clear previous table data
+            table.innerHTML = '';
 
-            // Create and append the header row
+
             const headerRow = document.createElement('tr');
             csvData[0].forEach(cellText => {
-                const cell = document.createElement('th'); // Use <th> for the header
+                const cell = document.createElement('th');
                 cell.textContent = cellText.trim();
                 headerRow.appendChild(cell);
             });
             table.appendChild(headerRow);
 
-            // Add paginated data
             paginatedData.forEach(rowArray => {
                 const row = document.createElement('tr');
                 rowArray.forEach(cellText => {
