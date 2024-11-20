@@ -1,0 +1,17 @@
+{
+  "name": "horáriomanager",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Lourenco21/ADS-2024-2025-1Sem-RegimeDiurno-Grupo-4.git"
+  },
+  "private": true,
+  "dependencies": {
+    "tabulator-tables": "^6.3.0"
+  }
+}

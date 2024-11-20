@@ -2,9 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Horário</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela CSV</title>
+    <link href="https://unpkg.com/tabulator-tables@5.4.0/dist/css/tabulator.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/tabulator-tables@5.4.0/dist/js/tabulator.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f9;
@@ -40,7 +43,6 @@
             background-color: #335a74;
         }
 
-
         .custom-file-input:active {
             transform: scale(0.95);
         }
@@ -55,97 +57,54 @@
             color: #555;
         }
 
-        table {
-            width: 80%;
-            border-collapse: collapse;
+        #example-table {
             margin-top: 30px;
-            display: none;
+            width: 80%;
+            border: 1px solid #ddd;
+            table-layout: fixed;
+            text-align: left;
+            border-radius: 5px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-left: auto;
-            margin-right: auto;
+            overflow: hidden;
+            background-color: #fff;
         }
-
-        th {
-            position: sticky;
-            top: 0;
+        .tabulator-header {
             background-color: #3b6e91;
             color: white;
-            padding: 12px;
+            font-weight: bold;
             text-align: left;
-        }
-
-        td {
+            border-bottom: 2px solid #ddd;
             padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-
-        th:nth-child(1){
-            position: sticky;
-            left: 0;
-            z-index: 2;
-            width: 100px;
-        }
-
-        td:nth-child(1) {
-
-            position: sticky;
-            left: 0;
-            z-index: 2;
-            width: 100px;
-            background-color: #f4f4f9;
-        }
-
-        th:nth-child(2){
-            position: sticky;
-            left: 85px;
-            z-index: 1;
-        }
-
-        td:nth-child(2) {
-            position: sticky;
-            left: 85px;
-            z-index: 1;
-            background-color: #f4f4f9;
-        }
-
-        #csvTableWrapper {
-            overflow-x: auto;
-            max-width: 100%;
-            margin-top: 20px;
-            margin-left: auto;
-            margin-right: auto;
-            display: block;
-        }
-
-        .pagination {
-            display: flex;
-            justify-content: center;
-            margin-top: 20px;
-            gap: 10px;
-        }
-
-        .pagination button, .pagination input {
-            padding: 8px 16px;
+            vertical-align: middle;
             font-size: 14px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            cursor: pointer;
-            background-color: #f7f7f7;
-            transition: background-color 0.2s ease-in-out;
+            white-space: nowrap; /* Prevent wrapping */
+            overflow: visible; /* Ensure full visibility */
+            text-overflow: clip; /* Prevent truncation */
         }
 
-        .pagination button:hover, .pagination input:hover {
-            background-color: #f0f0f0;
+        .tabulator-col {
+            min-width: 150px; /* Set a minimum width for the columns */
+            width: auto; /* Allow columns to expand based on content */
+            white-space: nowrap; /* Prevent text from breaking */
+            overflow: visible; /* Ensure content is visible */
+            text-overflow: clip; /* Prevent text from being clipped */
+            word-wrap: normal; /* Prevent word breaking */
+            text-align: left;
         }
 
-        .pagination input {
-            width: 80px;
-            text-align: center;
+        /* Adjust cell padding */
+        .tabulator-cell {
+            padding: 10px !important;
+            text-align: center !important;
         }
 
-        .pagination button:active {
-            transform: scale(0.98);
+        /* Alternate row colors */
+        .tabulator-row:nth-child(even) {
+            background-color: #f9f9f9 !important;
+        }
+
+        .tabulator-row:hover {
+            background-color: #f1f1f1 !important;
         }
 
 
@@ -153,116 +112,118 @@
 </head>
 <body>
     <h1>Select a CSV File</h1>
+        <label class="custom-file-input" for="csvFileInput">Choose a CSV File</label>
+        <input type="file" id="csvFileInput" accept=".csv" />
+        <p id="fileName"></p>
 
-    <label for="csvFileInput" class="custom-file-input">Choose a CSV File</label>
-    <input type="file" id="csvFileInput" accept=".csv" />
-    <p id="fileName"></p>
+    <div id="example-table"></div>
 
-    <div id="csvTableWrapper">
-    <table id="csvTable" border="1">
-    </table>
-    </div>
-
-    <div class="pagination" id="paginationControls">
-    </div>
-    <br>
-    <br>
+    <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
 
     <script>
-        const fileInput = document.getElementById('csvFileInput');
-        const fileNameDisplay = document.getElementById('fileName');
-        const rowsPerPage = 10;
-        let csvData = [];
-        let currentPage = 1;
-
-
-        fileInput.addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const text = e.target.result;
-                csvData = text.split('\n').map(row => row.split(';'));
-                currentPage = 1;
-                displayPage(currentPage);
-                createPaginationControls();
-                fileNameDisplay.textContent = `Selected file: ${file.name}`;
-
-                document.getElementById('csvTable').style.display = 'table';
-            };
-            reader.readAsText(file);
+        // Initialize Tabulator
+        var table = new Tabulator("#example-table", {
+            layout: "fitDataFill",
+            height: 600,
+            pagination: "local",
+            paginationSize: 20,
+            paginationSizeSelector: [5, 10, 20, 30, 50, 100],
+            movableColumns: true,
+            paginationCounter: "rows",
+            placeholder: "Awaiting Data, Please Load File",
+            tooltips: true,
         });
 
-        function displayPage(page) {
-            const start = (page - 1) * rowsPerPage;
-            const end = start + rowsPerPage;
-            const tableData = csvData.slice(1);
-            const paginatedData = tableData.slice(start, end);
-            const table = document.getElementById('csvTable');
-            table.innerHTML = '';
+        // Add event listener for file input
+        document.getElementById("csvFileInput").addEventListener("change", function (event) {
+            const file = event.target.files[0];
 
+            if (file) {
+                // Display selected file name
+                document.getElementById("fileName").textContent = `Loaded file: ${file.name}`;
 
-            const headerRow = document.createElement('tr');
-            csvData[0].forEach(cellText => {
-                const cell = document.createElement('th');
-                cell.textContent = cellText.trim();
-                headerRow.appendChild(cell);
-            });
-            table.appendChild(headerRow);
+                // Parse CSV file with PapaParse
+                Papa.parse(file, {
+                    header: true, // Use the first row as headers
+                    skipEmptyLines: true, // Ignore empty lines
+                    complete: function (results) {
+                        console.log("Parsed CSV Data:", results.data);
 
-            paginatedData.forEach(rowArray => {
-                const row = document.createElement('tr');
-                rowArray.forEach(cellText => {
-                    const cell = document.createElement('td');
-                    cell.textContent = cellText.trim();
-                    row.appendChild(cell);
+                        // Check if parsed data is valid
+                        if (results.data.length === 0) {
+                            alert("The CSV file is empty or has invalid content.");
+                            return;
+                        }
+
+                        // Generate columns dynamically with the first two frozen
+                        const columns = generateColumns(results.data);
+                        table.setColumns(columns);
+                        table.setData(results.data);
+                    },
+                    error: function (error) {
+                        console.error("Error parsing the CSV file:", error);
+                        alert("There was an error parsing the CSV file.");
+                    },
                 });
-                table.appendChild(row);
+            } else {
+                alert("No file selected!");
+            }
+        });
+
+        // Dynamically generate columns from data
+        function generateColumns(data) {
+            return Object.keys(data[0] || {}).map((field, index) => {
+                return {
+                    title: field.charAt(0).toUpperCase() + field.slice(1),
+                    field: field,
+                    headerMenu: headerMenu, // Add header menu to each column
+                    headerFilter: "input",  // Enable input filter for each column
+                    headerFilterPlaceholder: "Search...",
+                    headerWordWrap: true,
+                };
             });
         }
 
-        function createPaginationControls() {
-            const totalPages = Math.ceil((csvData.length - 1) / rowsPerPage);
-            const paginationControls = document.getElementById('paginationControls');
-            paginationControls.innerHTML = '';
+        // Define header menu for column visibility toggle with checkboxes
+        var headerMenu = function () {
+            var menu = [];
+            var columns = this.getColumns();
 
-            const firstButton = document.createElement('button');
-            firstButton.textContent = "1";
-            firstButton.addEventListener('click', () => {
-                currentPage = 1;
-                displayPage(currentPage);
-            });
-            paginationControls.appendChild(firstButton);
+            for (let column of columns) {
+                // Create checkbox element
+                let checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.checked = column.isVisible();
+                checkbox.style.marginRight = "10px";
 
-            const selectedPage = document.createElement("input");
-            selectedPage.type = 'number';
-            selectedPage.placeholder = 'Insert Page Number';
-            selectedPage.min = 1;
-            selectedPage.max = totalPages;
-            selectedPage.style.width = '120px';
+                // Create label
+                let label = document.createElement("span");
+                let title = document.createElement("span");
+                title.textContent = column.getDefinition().title;
 
-            selectedPage.addEventListener('keypress', (event) => {
-                if (event.key === 'Enter') {
-                    const page = parseInt(selectedPage.value);
-                    if (page >= 1 && page <= totalPages) {
-                        currentPage = page;
-                        displayPage(currentPage);
-                    } else {
-                        alert(`Please enter a number between 1 and ${totalPages}`);
-                    }
-                }
-            });
-            paginationControls.appendChild(selectedPage);
+                label.appendChild(checkbox);
+                label.appendChild(title);
 
-            const lastButton = document.createElement('button');
-            lastButton.textContent = totalPages.toString();
-            lastButton.addEventListener('click', () => {
-                currentPage = totalPages;
-                displayPage(currentPage);
-            });
-            paginationControls.appendChild(lastButton);
-        }
+                // Create menu item
+                menu.push({
+                    label: label,
+                    action: function (e) {
+                        // Prevent menu closing
+                        e.stopPropagation();
+
+                        // Toggle current column visibility
+                        column.toggle();
+
+                        // Update checkbox state
+                        checkbox.checked = column.isVisible();
+                    },
+                });
+            }
+
+
+            return menu;
+        };
+
     </script>
 </body>
 </html>
