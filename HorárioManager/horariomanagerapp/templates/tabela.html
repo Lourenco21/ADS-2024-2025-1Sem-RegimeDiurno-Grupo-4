@@ -26,6 +26,12 @@
             color: #333;
         }
 
+        .button-container {
+            display: flex;
+            gap: 20px; /* Add spacing between buttons */
+            align-items: center; /* Align buttons and labels vertically */
+        }
+
         .custom-file-input {
             padding: 12px 24px;
             background-color: #3b6e91;
@@ -47,17 +53,17 @@
             transform: scale(0.95);
         }
 
-        #csvFileInput {
+        #scheduleFileInput, #characteristicsFileInput {
             display: none;
         }
 
-        #fileName {
+        #scheduleFileInput, #characteristicsFileInput {
             font-size: 1.1em;
             margin-top: 20px;
             color: #555;
         }
 
-        #example-table {
+        #schedule-table, #characteristics-table {
             margin-top: 30px;
             width: 80%;
             border: 1px solid #ddd;
@@ -111,18 +117,41 @@
     </style>
 </head>
 <body>
-    <h1>Select a CSV File</h1>
-        <label class="custom-file-input" for="csvFileInput">Choose a CSV File</label>
-        <input type="file" id="csvFileInput" accept=".csv" />
-        <p id="fileName"></p>
+    <h1>Select the CSV Files</h1>
 
-    <div id="example-table"></div>
+    <div class="button-container">
+        <label class="custom-file-input" for="scheduleFileInput">Choose the schedule</label>
+        <input type="file" id="scheduleFileInput" accept=".csv" />
+
+
+        <label class="custom-file-input" for="characteristicsFileInput">Choose the room characteristics</label>
+        <input type="file" id="characteristicsFileInput" accept=".csv" />
+
+    </div>
+
+
+    <h3 id="filesSelectedHeading" style="display: none; align-items: center;;">Files Selected</h3>
+    <p id="scheduleFileName"></p>
+    <p id="characteristicsFileName"></p>
+
+
+    <h2>Schedule table</h2>
+    <div id="schedule-table"></div>
+    <br>
+    <h2>Characteristics table</h2>
+    <div id="characteristics-table"></div>
+
+    <br>
+
+    <h2>Filters for instances that contribute negatively for the schedule</h2>
+    <button id="overcrowdedFilterButton" class="custom-file-input" style="margin-top: 20px;">Filtrar aulas em sobrelotação</button>
+    <button id="overlapFilterButton" class="custom-file-input" style="margin-top: 20px;">Filtrar sobreposição de aulas</button>
 
     <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
 
     <script>
         // Initialize Tabulator
-        var table = new Tabulator("#example-table", {
+        var scheduleTable = new Tabulator("#schedule-table", {
             layout: "fitDataFill",
             height: 600,
             pagination: "local",
@@ -134,41 +163,96 @@
             tooltips: true,
         });
 
-        // Add event listener for file input
-        document.getElementById("csvFileInput").addEventListener("change", function (event) {
+        // Initialize second table for room characteristics
+        var characteristicsTable = new Tabulator("#characteristics-table", {
+            layout: "fitDataFill",
+            height: 600,
+            pagination: "local",
+            paginationSize: 20,
+            paginationSizeSelector: [5, 10, 20, 30, 50, 100],
+            movableColumns: true,
+            paginationCounter: "rows",
+            placeholder: "Awaiting Data, Please Load File",
+            tooltips: true,
+        });
+
+        document.getElementById("scheduleFileInput").addEventListener("change", function (event) {
             const file = event.target.files[0];
 
             if (file) {
-                // Display selected file name
-                document.getElementById("fileName").textContent = `Loaded file: ${file.name}`;
+                document.getElementById("scheduleFileName").textContent = `Schedule file loaded: ${file.name}`;
 
-                // Parse CSV file with PapaParse
                 Papa.parse(file, {
-                    header: true, // Use the first row as headers
-                    skipEmptyLines: true, // Ignore empty lines
+                    header: true,
+                    skipEmptyLines: true,
                     complete: function (results) {
-                        console.log("Parsed CSV Data:", results.data);
+                        console.log("Parsed Schedule Data:", results.data);
 
-                        // Check if parsed data is valid
                         if (results.data.length === 0) {
                             alert("The CSV file is empty or has invalid content.");
                             return;
                         }
 
-                        // Generate columns dynamically with the first two frozen
                         const columns = generateColumns(results.data);
-                        table.setColumns(columns);
-                        table.setData(results.data);
+                        scheduleTable.setColumns(columns);
+                        scheduleTable.setData(results.data);
                     },
                     error: function (error) {
-                        console.error("Error parsing the CSV file:", error);
-                        alert("There was an error parsing the CSV file.");
+                        console.error("Error parsing the schedule CSV file:", error);
+                        alert("There was an error parsing the schedule CSV file.");
                     },
                 });
             } else {
                 alert("No file selected!");
             }
+            checkIfFilesLoaded();
         });
+
+        document.getElementById("characteristicsFileInput").addEventListener("change", function (event) {
+            const file = event.target.files[0];
+
+            if (file) {
+                document.getElementById("characteristicsFileName").textContent = `Characteristics file loaded: ${file.name}`;
+
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function (results) {
+                        console.log("Parsed Characteristics Data:", results.data);
+
+                        if (results.data.length === 0) {
+                            alert("The CSV file is empty or has invalid content.");
+                            return;
+                        }
+
+                        const columns = generateColumns(results.data);
+                        characteristicsTable.setColumns(columns);
+                        characteristicsTable.setData(results.data);
+                    },
+                    error: function (error) {
+                        console.error("Error parsing the characteristics CSV file:", error);
+                        alert("There was an error parsing the characteristics CSV file.");
+                    },
+                });
+            } else {
+                alert("No file selected!");
+            }
+            checkIfFilesLoaded();
+        });
+
+        function checkIfFilesLoaded() {
+            // Check if both files are selected
+            const scheduleFileLoaded = document.getElementById("scheduleFileInput").files.length > 0;
+            const characteristicsFileLoaded = document.getElementById("characteristicsFileInput").files.length > 0;
+
+            // Show or hide the "Files Selected" heading based on whether both files are loaded
+            if (scheduleFileLoaded || characteristicsFileLoaded) {
+                document.getElementById("filesSelectedHeading").style.display = 'block';
+            } else {
+                document.getElementById("filesSelectedHeading").style.display = 'none';
+            }
+        }
+
 
         // Dynamically generate columns from data
         function generateColumns(data) {
@@ -223,6 +307,101 @@
 
             return menu;
         };
+
+        document.getElementById("overcrowdedFilterButton").addEventListener("click", function () {
+            // Verificar se as colunas "Inscritos" e "Vagas" existem
+            const scheduleData = scheduleTable.getData();
+            if (!scheduleData.length) {
+                alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
+                return;
+            }
+
+            const hasRequiredColumns = scheduleData.some(row => "Inscritos no turno" in row && "Lotação" in row && "Características da sala pedida para a aula" in row);
+            if (!hasRequiredColumns) {
+                alert("O ficheiro CSV não contém as colunas necessárias ('Inscritos no turno' e 'Lotação').");
+                return;
+            }
+
+            // Aplicar o filtro
+            scheduleTable.setFilter((row) => {
+                const inscritos = parseFloat(row["Inscritos no turno"]) || 0; // Converte para número ou usa 0 como padrão
+                const vagas = parseFloat(row["Lotação"]) || 0; // Converte para número ou usa 0 como padrão
+                const contexto = row["Características da sala pedida para a aula"] ? row["Características da sala pedida para a aula"].toLowerCase().trim() : ""; // Remove espaços e converte para minúsculas
+
+                const textoExcluido = "Não necessita de sala".toLowerCase(); // Texto a ser excluído
+                return inscritos > vagas && contexto !== textoExcluido; // Retorna apenas as linhas que atendem ao critério
+            });
+
+            alert("Filtro aplicado: Exibindo apenas aulas com mais inscritos do que vagas e que necessitam de uma sala.");
+        });
+
+        document.getElementById("overlapFilterButton").addEventListener("click", function () {
+            // Get the data from the schedule table
+            const data = scheduleTable.getData();
+
+            if (!data.length) {
+                alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
+                return;
+            }
+
+            // Create a map to count occurrences of each combination of (dia, inicio, fim, sala)
+            const combinationCounts = {};
+
+            for(let i = 0; i < data.length; i++){
+                for(let j = 0; j < data.length; j++){
+                    if(data[i]["Sala da aula"] === data[j]["Sala da aula"]){
+                        if (data[i]["Dia"] === data[j]["Dia"]) {
+                            if(data[i]["Início"] === data[j]["Início"]){
+
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Count the occurrences of each combination
+            data.forEach(row => {
+                const dia = row["Dia"] ? row["Dia"].toLowerCase().trim() : "";
+                const inicio = row["Inicio"] ? row["Inicio"].toLowerCase().trim() : "";
+                const fim = row["Fim"] ? row["Fim"].toLowerCase().trim() : "";
+                const sala = row["Sala da aula"] ? row["Sala da aula"].toLowerCase().trim() : "";
+
+                // Skip rows with missing values in any of these columns
+                if (!dia || !inicio || !fim || !sala) {
+                    return;
+                }
+
+                // Create a unique combination string
+                const combination = `${dia}-${inicio}-${fim}-${sala}`;
+
+                // Count how many times this combination appears
+                combinationCounts[combination] = (combinationCounts[combination] || 0) + 1;
+            });
+
+            // Filter rows to only show combinations that are repeated (overlapping)
+            scheduleTable.setFilter((row) => {
+                const dia = row["Dia"] ? row["Dia"].toLowerCase().trim() : "";
+                const inicio = row["Inicio"] ? row["Inicio"].toLowerCase().trim() : "";
+                const fim = row["Fim"] ? row["Fim"].toLowerCase().trim() : "";
+                const sala = row["Sala da aula"] ? row["Sala da aula"].toLowerCase().trim() : "";
+
+
+                // Skip rows with missing values
+                if (!dia || !inicio || !fim || !sala) {
+                    return false;
+                }
+
+                // Create the combination string again
+                const combination = `${dia}-${inicio}-${fim}-${sala}`;
+
+                // Only show rows that have a repeated combination
+                return combinationCounts[combination] > 1;
+            });
+
+            alert("Filtro de sobreposição aplicado: Exibindo apenas aulas com sobreposição.");
+        });
+
+
 
     </script>
 </body>
