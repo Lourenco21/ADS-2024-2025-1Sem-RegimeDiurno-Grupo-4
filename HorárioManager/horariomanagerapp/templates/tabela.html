@@ -316,7 +316,12 @@
                 return;
             }
 
-            const hasRequiredColumns = scheduleData.some(row => "Inscritos no turno" in row && "Lotação" in row && "Características da sala pedida para a aula" in row);
+            const hasRequiredColumns = scheduleData.some(row =>
+                "Inscritos no turno" in row &&
+                "Lotação" in row &&
+                "Características da sala pedida para a aula" in row &&
+                "Sala da aula" in row
+            );
             if (!hasRequiredColumns) {
                 alert("O ficheiro CSV não contém as colunas necessárias ('Inscritos no turno' e 'Lotação').");
                 return;
@@ -327,9 +332,10 @@
                 const inscritos = parseFloat(row["Inscritos no turno"]) || 0; // Converte para número ou usa 0 como padrão
                 const vagas = parseFloat(row["Lotação"]) || 0; // Converte para número ou usa 0 como padrão
                 const contexto = row["Características da sala pedida para a aula"] ? row["Características da sala pedida para a aula"].toLowerCase().trim() : ""; // Remove espaços e converte para minúsculas
+                const sala = row["Sala da aula"] ? row["Sala da aula"].trim() : "";
 
                 const textoExcluido = "Não necessita de sala".toLowerCase(); // Texto a ser excluído
-                return inscritos > vagas && contexto !== textoExcluido; // Retorna apenas as linhas que atendem ao critério
+                return inscritos > vagas && contexto !== textoExcluido && sala !==""; // Retorna apenas as linhas que atendem ao critério
             });
 
             alert("Filtro aplicado: Exibindo apenas aulas com mais inscritos do que vagas e que necessitam de uma sala.");
