@@ -186,7 +186,6 @@
                     header: true,
                     skipEmptyLines: true,
                     complete: function (results) {
-                        console.log("Parsed Schedule Data:", results.data);
 
                         if (results.data.length === 0) {
                             alert("The CSV file is empty or has invalid content.");
@@ -198,7 +197,6 @@
                         scheduleTable.setData(results.data);
                     },
                     error: function (error) {
-                        console.error("Error parsing the schedule CSV file:", error);
                         alert("There was an error parsing the schedule CSV file.");
                     },
                 });
@@ -218,7 +216,6 @@
                     header: true,
                     skipEmptyLines: true,
                     complete: function (results) {
-                        console.log("Parsed Characteristics Data:", results.data);
 
                         if (results.data.length === 0) {
                             alert("The CSV file is empty or has invalid content.");
@@ -230,7 +227,6 @@
                         characteristicsTable.setData(results.data);
                     },
                     error: function (error) {
-                        console.error("Error parsing the characteristics CSV file:", error);
                         alert("There was an error parsing the characteristics CSV file.");
                     },
                 });
@@ -344,61 +340,36 @@
                 return;
             }
 
-            // Create a map to count occurrences of each combination of (dia, inicio, fim, sala)
-            const combinationCounts = {};
-
-            for(let i = 0; i < data.length; i++){
-                for(let j = 0; j < data.length; j++){
-                    if(data[i]["Sala da aula"] === data[j]["Sala da aula"]){
-                        if (data[i]["Dia"] === data[j]["Dia"]) {
-                            if(data[i]["Início"] === data[j]["Início"]){
-
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Count the occurrences of each combination
-            data.forEach(row => {
-                const dia = row["Dia"] ? row["Dia"].toLowerCase().trim() : "";
-                const inicio = row["Inicio"] ? row["Inicio"].toLowerCase().trim() : "";
-                const fim = row["Fim"] ? row["Fim"].toLowerCase().trim() : "";
-                const sala = row["Sala da aula"] ? row["Sala da aula"].toLowerCase().trim() : "";
-
-                // Skip rows with missing values in any of these columns
-                if (!dia || !inicio || !fim || !sala) {
-                    return;
-                }
-
-                // Create a unique combination string
-                const combination = `${dia}-${inicio}-${fim}-${sala}`;
-
-                // Count how many times this combination appears
-                combinationCounts[combination] = (combinationCounts[combination] || 0) + 1;
-            });
-
-            // Filter rows to only show combinations that are repeated (overlapping)
+            // Set filter directly within setFilter
             scheduleTable.setFilter((row) => {
                 const dia = row["Dia"] ? row["Dia"].toLowerCase().trim() : "";
-                const inicio = row["Inicio"] ? row["Inicio"].toLowerCase().trim() : "";
-                const fim = row["Fim"] ? row["Fim"].toLowerCase().trim() : "";
                 const sala = row["Sala da aula"] ? row["Sala da aula"].toLowerCase().trim() : "";
+                const fim = row["Fim"] ? row["Fim"].toLowerCase().trim() : "";
 
-
-                // Skip rows with missing values
-                if (!dia || !inicio || !fim || !sala) {
-                    return false;
+                if (!sala || !dia || !fim) {
+                    return false; // Skip rows that don't have data for necessary columns
                 }
 
-                // Create the combination string again
-                const combination = `${dia}-${inicio}-${fim}-${sala}`;
+                // Check for overlaps by iterating over the data
+                for (let i = 0; i < data.length; i++) {
+                    const otherRow = data[i];
+                    const otherSala = otherRow["Sala da aula"] ? otherRow["Sala da aula"].toLowerCase().trim() : "";
+                    const otherDia = otherRow["Dia"] ? otherRow["Dia"].toLowerCase().trim() : "";
+                    const otherFim = otherRow["Fim"] ? otherRow["Fim"].toLowerCase().trim() : "";
 
-                // Only show rows that have a repeated combination
-                return combinationCounts[combination] > 1;
+                    // Skip comparison if it's the same row
+                    if (row === otherRow) continue;
+
+                    // If the current row overlaps with another row, return true to show it
+                    if (sala === otherSala && dia === otherDia && fim === otherFim) {
+                        return true;
+                    }
+                }
+
+                return false; // No overlap found, hide the row
             });
 
-            alert("Filtro de sobreposição aplicado: Exibindo apenas aulas com sobreposição.");
+            alert("Filtro de sobreposição aplicado: Exibindo aulas com sobreposição de salas no mesmo dia.");
         });
 
 
