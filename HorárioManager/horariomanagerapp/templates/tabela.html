@@ -144,11 +144,30 @@
     <br>
 
     <h2>Filters for instances that contribute negatively for the schedule</h2>
-    <div>
-        <button id="overcrowdedFilterButton" class="custom-file-input" style="margin-top: 20px;">Filtrar aulas em sobrelotação</button>
-        <button id="overlapFilterButton" class="custom-file-input" style="margin-top: 20px;">Filtrar sobreposição de aulas</button>
-        <button class="custom-file-input">Filtrar qualquer cena</button>
+    <div style="display: flex; justify-content: space-around; align-items: flex-start; gap: 20px; margin-top: 20px;">
+        <div style="text-align: center;">
+            <button id="overcrowdedFilterButton" class="custom-file-input">Filtrar aulas em sobrelotação</button>
+            <div id="overcrowdedMetrics" style="margin-top: 10px; font-weight: bold;"></div>
+        </div>
+
+        <div style="text-align: center;">
+            <button id="overlapFilterButton" class="custom-file-input">Filtrar sobreposição de aulas</button>
+            <div id="overlapMetrics" style="margin-top: 10px; font-weight: bold;"></div>
+        </div>
+
+        <div style="text-align: center;">
+            <button id="" class="custom-file-input">Filtrar qualquer cena</button>
+            <div id="anyMetrics" style="margin-top: 10px; font-weight: bold;"></div>
+        </div>
     </div>
+
+    <br><br>
+
+    <div>
+        <button id="resetFilterButton" class="custom-file-input">Reset filters</button>
+    </div>
+
+
     <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
 
     <script>
@@ -178,6 +197,10 @@
             tooltips: true,
         });
 
+        // Declare a global variable to store the original schedule data
+        let originalScheduleData = [];
+
+        // Upload file function
         document.getElementById("scheduleFileInput").addEventListener("change", function (event) {
             const file = event.target.files[0];
 
@@ -188,11 +211,13 @@
                     header: true,
                     skipEmptyLines: true,
                     complete: function (results) {
-
                         if (results.data.length === 0) {
                             alert("The CSV file is empty or has invalid content.");
                             return;
                         }
+
+                        // Save the original data to the global variable
+                        originalScheduleData = results.data;
 
                         const columns = generateColumns(results.data);
                         scheduleTable.setColumns(columns);
@@ -207,6 +232,7 @@
             }
             checkIfFilesLoaded();
         });
+
 
         document.getElementById("characteristicsFileInput").addEventListener("change", function (event) {
             const file = event.target.files[0];
@@ -307,6 +333,12 @@
         };
 
         document.getElementById("overcrowdedFilterButton").addEventListener("click", function () {
+
+            resetFiltersAndMetrics();
+
+            let totalClasses = 0;
+            let overcrowdedClasses = 0;
+
             // Verificar se as colunas "Inscritos" e "Vagas" existem
             const scheduleData = scheduleTable.getData();
             if (!scheduleData.length) {
@@ -325,95 +357,198 @@
                 return;
             }
 
-            // Aplicar o filtro
-            scheduleTable.setFilter((row) => {
-                const inscritos = parseFloat(row["Inscritos no turno"]) || 0; // Converte para número ou usa 0 como padrão
-                const vagas = parseFloat(row["Lotação"]) || 0; // Converte para número ou usa 0 como padrão
-                const contexto = row["Características da sala pedida para a aula"] ? row["Características da sala pedida para a aula"].toLowerCase().trim() : ""; // Remove espaços e converte para minúsculas
-                const sala = row["Sala da aula"] ? row["Sala da aula"].trim() : "";
+            // Filter the data manually
+            const filteredData = originalScheduleData.filter(row => {
+                const inscritos = parseFloat(row["Inscritos no turno"]) || 0; // Convert to number or default to 0
+                const vagas = parseFloat(row["Lotação"]) || 0; // Convert to number or default to 0
+                const contexto = row["Características da sala pedida para a aula"] ? row["Características da sala pedida para a aula"].toLowerCase().trim() : ""; // Trim and lowercase
+                const sala = row["Sala da aula"] ? row["Sala da aula"].trim() : ""; // Trim
 
-                const textoExcluido = "Não necessita de sala".toLowerCase(); // Texto a ser excluído
-                return inscritos > vagas && contexto !== textoExcluido && sala !==""; // Retorna apenas as linhas que atendem ao critério
+                const textoExcluido = "Não necessita de sala".toLowerCase(); // Text to exclude
+
+                totalClasses++;
+                if (inscritos > vagas && contexto !== textoExcluido && sala !== "") {
+                    overcrowdedClasses++;
+                    return true; // Include in the filtered data
+                }
+
+                return false; // Exclude from the filtered data
             });
 
-            alert("Filtro aplicado: Exibindo apenas aulas com mais inscritos do que vagas e que necessitam de uma sala.");
+            // Update the table with filtered data
+            scheduleTable.setData(filteredData);
+
+
+            const overcrowdedPercentage = totalClasses > 0 ? ((overcrowdedClasses / totalClasses) * 100).toFixed(2) : 0;
+
+            let metricDisplay = document.getElementById("overcrowdedMetrics");
+                if (!metricDisplay) {
+                    // Create the metric display element if it doesn't exist
+                    metricDisplay = document.createElement("div");
+                    metricDisplay.id = "overcrowdedMetrics";
+                    metricDisplay.style.marginTop = "10px"; // Add some spacing
+                    metricDisplay.style.fontWeight = "bold"; // Make the text bold
+                    metricDisplay.style.display = "block";
+                    document.getElementById("overcrowdedFilterButton").insertAdjacentElement("afterend", metricDisplay);
+                }
+
+                // Update the metric display content
+                metricDisplay.innerHTML = `
+                    <p>Total de aulas: ${totalClasses}</p>
+                    <p>Aulas sobrelotadas: ${overcrowdedClasses}</p>
+                    <p>Percentagem de superlotação: ${overcrowdedPercentage}%</p>
+                `;
+
+                metricDisplay.style.display = "block";
+
         });
 
 
 
         document.getElementById("overlapFilterButton").addEventListener("click", function () {
+
+            resetFiltersAndMetrics();
+
             // Get the data from the schedule table
             const scheduleData = scheduleTable.getData();
+
+            let totalClasses = scheduleData.length;
+            let overlapClasses = 0;
 
             if (!scheduleData.length) {
                 alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
                 return;
             }
 
+            // Ensure required columns exist
             const hasRequiredColumns = scheduleData.some(row =>
-            "Início" in row &&
-            "Fim" in row &&
-            "Sala da aula" in row &&
-            "Dia" in row
+                "Início" in row &&
+                "Fim" in row &&
+                "Sala da aula" in row &&
+                "Dia" in row
             );
 
             if (!hasRequiredColumns) {
-                alert("O ficheiro CSV não contém as colunas necessárias ('Início', 'Fim', 'Sala da aula', 'Data').");
+                alert("O ficheiro CSV não contém as colunas necessárias ('Início', 'Fim', 'Sala da aula', 'Dia').");
                 return;
             }
 
+            // Filter out rows with empty "Sala da aula"
             const validData = scheduleData.filter(row => row["Sala da aula"] && row["Sala da aula"].trim() !== "");
 
             if (!validData.length) {
                 alert("Todas as aulas possuem 'Sala da aula' vazia. Nenhuma sobreposição será calculada.");
                 return;
             }
-                // Converter horários para comparação
+
+            // Convert time to minutes
             const parseTime = (timeStr) => {
                 const [hours, minutes] = timeStr.split(":").map(Number);
-                return hours * 60 + minutes; // Retorna o total de minutos
+                return hours * 60 + minutes;
             };
 
+            // Preprocess data to add parsed times and a group key
+            validData.forEach(row => {
+                row._start = parseTime(row["Início"]);
+                row._end = parseTime(row["Fim"]);
+                row._key = `${row["Sala da aula"].trim()}_${row["Dia"].trim()}`;
+            });
+
+            // Group rows by "Sala da aula" and "Dia"
+            const groupBy = (data, keyFn) => {
+                return data.reduce((acc, row) => {
+                    const key = keyFn(row);
+                    if (!acc[key]) acc[key] = [];
+                    acc[key].push(row);
+                    return acc;
+                }, {});
+            };
+
+            const groupedData = groupBy(validData, row => row._key);
+
             const overlaps = [];
-            const addedRows = new Set(); // Usamos um Set para garantir que não adicionamos a mesma linha duas vezes
+            const addedRows = new Set(); // Ensure no duplicate rows are added
 
-            validData.forEach((rowA, indexA) => {
-                const startA = parseTime(rowA["Início"]);
-                const endA = parseTime(rowA["Fim"]);
-                const roomA = rowA["Sala da aula"].trim();
-                const dateA = rowA["Dia"].trim();
+            // Check for overlaps within each group
+            Object.values(groupedData).forEach(group => {
+                // Sort by start time for efficient comparison
+                group.sort((a, b) => a._start - b._start);
 
-            // Procurar conflitos em relação a outras instâncias
-            validData.forEach((rowB, indexB) => {
-                if (indexB <= indexA) return; // Para evitar comparações repetidas ou comparar com ela mesma
+                for (let i = 0; i < group.length; i++) {
+                    const rowA = group[i];
+                    const startA = rowA._start;
+                    const endA = rowA._end;
 
-                const startB = parseTime(rowB["Início"]);
-                const endB = parseTime(rowB["Fim"]);
-                const roomB = rowB["Sala da aula"].trim();
-                const dateB = rowB["Dia"].trim();
+                    for (let j = i + 1; j < group.length; j++) {
+                        const rowB = group[j];
+                        const startB = rowB._start;
 
-            // Verificar se há sobreposição de horários no mesmo dia e na mesma sala
-            if (dateA === dateB && roomA === roomB &&
-                ((startA >= startB && startA < endB) || (startB >= startA && startB < endA))) {
+                        // Stop checking if no more overlaps are possible
+                        if (startB >= endA) break;
 
-                // Se houver sobreposição, adicionar ambas as aulas ao array overlaps
-                if (!addedRows.has(rowA)) {
-                    overlaps.push(rowA);
-                    addedRows.add(rowA); // Marca a aula A como já adicionada
+                        const endB = rowB._end;
+
+                        // Check if rows overlap
+                        if ((startA < endB && startA >= startB) || (startB < endA && startB >= startA)) {
+                            if (!addedRows.has(rowA)) {
+                                overlaps.push(rowA);
+                                addedRows.add(rowA);
+                                overlapClasses++;
+                            }
+                            if (!addedRows.has(rowB)) {
+                                overlaps.push(rowB);
+                                addedRows.add(rowB);
+                                overlapClasses++;
+                            }
+                        }
+                    }
                 }
-                if (!addedRows.has(rowB)) {
-                    overlaps.push(rowB);
-                    addedRows.add(rowB); // Marca a aula B como já adicionada
+            });
+
+            // Update the table to display only overlapping rows
+            scheduleTable.setData(overlaps);
+
+            const overcrowdedPercentage = totalClasses > 0 ? ((overlapClasses / totalClasses) * 100).toFixed(2) : 0;
+
+            let metricDisplay = document.getElementById("overlapMetrics");
+                if (!metricDisplay) {
+                    // Create the metric display element if it doesn't exist
+                    metricDisplay = document.createElement("div");
+                    metricDisplay.id = "overcrowdedMetrics";
+                    metricDisplay.style.marginTop = "10px"; // Add some spacing
+                    metricDisplay.style.fontWeight = "bold"; // Make the text bold
+                    document.getElementById("overcrowdedFilterButton").insertAdjacentElement("afterend", metricDisplay);
                 }
-            }
+
+                // Update the metric display content
+                metricDisplay.innerHTML = `
+                    <p>Total de aulas: ${totalClasses}</p>
+                    <p>Aulas sobrepostas: ${overlapClasses}</p>
+                    <p>Percentagem de sobreposição: ${overcrowdedPercentage}%</p>
+                `;
+
+                metricDisplay.style.display = "block";
+
         });
-    });
 
-    // Atualizar tabela para exibir apenas linhas com sobreposição
-    scheduleTable.setData(overlaps);
+        function resetFiltersAndMetrics() {
+            if (!originalScheduleData.length) {
+                alert("Nenhum dado original encontrado para restaurar.");
+                return;
+            }
 
-    alert("Filtro aplicado: Exibindo apenas aulas com sobreposição.");
-});
+            // Reset the table to the original unfiltered data
+            scheduleTable.setData(originalScheduleData);
+
+            const allMetricDisplays = document.querySelectorAll("[id$='Metrics']"); // Selects all elements with an ID ending in 'Metrics'
+            allMetricDisplays.forEach(metric => {
+                metric.style.display = "none"; // Hide each metric element
+            });
+        }
+        document.getElementById("resetFilterButton").addEventListener("click", function () {
+            resetFiltersAndMetrics();
+        });
+
 
 
     </script>
