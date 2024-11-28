@@ -337,47 +337,81 @@
             alert("Filtro aplicado: Exibindo apenas aulas com mais inscritos do que vagas e que necessitam de uma sala.");
         });
 
+
+
         document.getElementById("overlapFilterButton").addEventListener("click", function () {
             // Get the data from the schedule table
-            const data = scheduleTable.getData();
+            const scheduleData = scheduleTable.getData();
 
-            if (!data.length) {
+            if (!scheduleData.length) {
                 alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
                 return;
             }
 
-            // Set filter directly within setFilter
-            scheduleTable.setFilter((row) => {
-                const dia = row["Dia"] ? row["Dia"].toLowerCase().trim() : "";
-                const sala = row["Sala da aula"] ? row["Sala da aula"].toLowerCase().trim() : "";
-                const fim = row["Fim"] ? row["Fim"].toLowerCase().trim() : "";
+            const hasRequiredColumns = scheduleData.some(row =>
+            "Início" in row &&
+            "Fim" in row &&
+            "Sala da aula" in row &&
+            "Dia" in row
+            );
 
-                if (!sala || !dia || !fim) {
-                    return false; // Skip rows that don't have data for necessary columns
+            if (!hasRequiredColumns) {
+                alert("O ficheiro CSV não contém as colunas necessárias ('Início', 'Fim', 'Sala da aula', 'Data').");
+                return;
+            }
+
+            const validData = scheduleData.filter(row => row["Sala da aula"] && row["Sala da aula"].trim() !== "");
+
+            if (!validData.length) {
+                alert("Todas as aulas possuem 'Sala da aula' vazia. Nenhuma sobreposição será calculada.");
+                return;
+            }
+                // Converter horários para comparação
+            const parseTime = (timeStr) => {
+                const [hours, minutes] = timeStr.split(":").map(Number);
+                return hours * 60 + minutes; // Retorna o total de minutos
+            };
+
+            const overlaps = [];
+            const addedRows = new Set(); // Usamos um Set para garantir que não adicionamos a mesma linha duas vezes
+
+            validData.forEach((rowA, indexA) => {
+                const startA = parseTime(rowA["Início"]);
+                const endA = parseTime(rowA["Fim"]);
+                const roomA = rowA["Sala da aula"].trim();
+                const dateA = rowA["Dia"].trim();
+
+            // Procurar conflitos em relação a outras instâncias
+            validData.forEach((rowB, indexB) => {
+                if (indexB <= indexA) return; // Para evitar comparações repetidas ou comparar com ela mesma
+
+                const startB = parseTime(rowB["Início"]);
+                const endB = parseTime(rowB["Fim"]);
+                const roomB = rowB["Sala da aula"].trim();
+                const dateB = rowB["Dia"].trim();
+
+            // Verificar se há sobreposição de horários no mesmo dia e na mesma sala
+            if (dateA === dateB && roomA === roomB &&
+                ((startA >= startB && startA < endB) || (startB >= startA && startB < endA))) {
+
+                // Se houver sobreposição, adicionar ambas as aulas ao array overlaps
+                if (!addedRows.has(rowA)) {
+                    overlaps.push(rowA);
+                    addedRows.add(rowA); // Marca a aula A como já adicionada
                 }
-
-                // Check for overlaps by iterating over the data
-                for (let i = 0; i < data.length; i++) {
-                    const otherRow = data[i];
-                    const otherSala = otherRow["Sala da aula"] ? otherRow["Sala da aula"].toLowerCase().trim() : "";
-                    const otherDia = otherRow["Dia"] ? otherRow["Dia"].toLowerCase().trim() : "";
-                    const otherFim = otherRow["Fim"] ? otherRow["Fim"].toLowerCase().trim() : "";
-
-                    // Skip comparison if it's the same row
-                    if (row === otherRow) continue;
-
-                    // If the current row overlaps with another row, return true to show it
-                    if (sala === otherSala && dia === otherDia && fim === otherFim) {
-                        return true;
-                    }
+                if (!addedRows.has(rowB)) {
+                    overlaps.push(rowB);
+                    addedRows.add(rowB); // Marca a aula B como já adicionada
                 }
-
-                return false; // No overlap found, hide the row
-            });
-
-            alert("Filtro de sobreposição aplicado: Exibindo aulas com sobreposição de salas no mesmo dia.");
+            }
         });
+    });
 
+    // Atualizar tabela para exibir apenas linhas com sobreposição
+    scheduleTable.setData(overlaps);
+
+    alert("Filtro aplicado: Exibindo apenas aulas com sobreposição.");
+});
 
 
     </script>
