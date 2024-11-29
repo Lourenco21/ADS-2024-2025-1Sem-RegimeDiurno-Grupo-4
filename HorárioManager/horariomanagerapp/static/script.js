@@ -380,3 +380,33 @@
         scheduleTable.on("cellDblClick", function(e, cell) {
             cell.edit();
         });
+
+
+        // Save modified data to a new file with a user-specified name
+        document.getElementById("saveChangesButton").addEventListener("click", function () {
+            const modifiedData = scheduleTable.getData(); // Get the current table data
+
+            if (modifiedData.length === 0) {
+                alert("No data available to save!");
+                return;
+            }
+
+            const fileName = prompt("Enter a name for the file (without extension):", "schedule_data");
+
+            if (!fileName) {
+                alert("File name is required!");
+                return;
+            }
+
+            const csvContent = Papa.unparse(modifiedData);
+
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = `${fileName}.csv`;
+
+            link.click();
+            URL.revokeObjectURL(url);
+        });
