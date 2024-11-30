@@ -665,3 +665,69 @@ document.getElementById("classWithoutRoomButton").addEventListener("click", func
     scheduleTable.setData(filteredData);
 
 });
+
+document.getElementById("timeRegulationsButton").addEventListener("click", function () {
+    resetFiltersAndMetrics();
+
+    let totalClasses = 0;
+    let filteredClasses = 0;
+
+    // Obter os dados da tabela de horários
+    const scheduleData = scheduleTable.getData();
+
+    if (!scheduleData.length) {
+        alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
+        return;
+    }
+
+    const hasRequiredColumns = scheduleData.some(row => "Início" in row && "Fim" in row);
+    if (!hasRequiredColumns) {
+        alert("O ficheiro CSV não contém as colunas necessárias ('Início' e 'Fim').");
+        return;
+    }
+
+    // Função para converter hora no formato HH:MM:SS para minutos
+    const parseTime = (timeStr) => {
+        const [hours, minutes] = timeStr.split(":").map(Number);
+        return hours * 60 + minutes; // Retorna o total de minutos
+    };
+
+    // Definindo os limites de horário
+    const startLimit = parseTime("08:30:00"); // 8:30 AM
+    const endLimit = parseTime("21:00:00"); // 9:00 PM
+    const maxDuration = 180; // 3 horas (180 minutos)
+
+    // Filtrar os dados de acordo com as condições **não atendidas**
+    const filteredData = scheduleData.filter(row => {
+        const start = parseTime(row["Início"]);
+        const end = parseTime(row["Fim"]);
+
+        totalClasses++; // Incrementa o total de aulas
+
+        // Verificar se a aula não está dentro do horário permitido e tem mais de 3 horas de duração
+        const isBeforeStartLimit = start < startLimit; // Aula começa antes das 8:30
+        const isAfterEndLimit = start > endLimit; // Aula começa depois das 21:00
+        const hasInvalidDuration = (end - start) > maxDuration; // Duração maior que 3 horas
+
+        if (isBeforeStartLimit || isAfterEndLimit || hasInvalidDuration) {
+            filteredClasses++; // Incrementa o contador de aulas filtradas
+            return true; // Incluir no filtro se não cumpre as restrições
+        }
+        return false; // Excluir do filtro se cumpre as restrições
+    });
+
+    if (!filteredData.length) {
+        alert("Nenhuma aula encontrada que não cumpra as restrições.");
+        return;
+    }
+
+    // Atualizar a tabela com os dados filtrados
+    scheduleTable.setData(filteredData);
+
+    // Exibir as métricas
+    alert(
+        `Filtro aplicado: Exibindo aulas que não cumprem as restrições de horário ou duração.\n` +
+        `Total de aulas: ${totalClasses}\n` +
+        `Aulas filtradas: ${filteredClasses}`
+    );
+});
