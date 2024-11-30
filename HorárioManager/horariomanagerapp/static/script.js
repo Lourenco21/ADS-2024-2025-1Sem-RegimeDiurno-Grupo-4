@@ -621,4 +621,47 @@ document.getElementById("saveChangesButton").addEventListener("click", function 
     URL.revokeObjectURL(url);
 });
 
+document.getElementById("classWithoutRoomButton").addEventListener("click", function () {
 
+    resetFiltersAndMetrics();
+
+    let totalClasses = 0;
+    let classesWithoutRoom = 0;
+
+    // Obter os dados da tabela de horários
+    const scheduleData = scheduleTable.getData();
+
+    if (!scheduleData.length) {
+        alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
+        return;
+    }
+
+    const hasRequiredColumn = scheduleData.some(row => "Sala da aula" in row);
+
+    if (!hasRequiredColumn) {
+        alert("O ficheiro CSV não contém a coluna necessária ('Sala da aula').");
+        return;
+    }
+
+    // Filtrar os dados manualmente
+    const filteredData = scheduleData.filter(row => {
+        const contexto = row["Características da sala pedida para a aula"] ? row["Características da sala pedida para a aula"].toLowerCase().trim() : "";
+        totalClasses++; // Incrementar o total de aulas
+
+        const textoExcluido = "Não necessita de sala".toLowerCase();
+        if ((!row["Sala da aula"] || row["Sala da aula"].trim() === "") && contexto !== textoExcluido) {
+            classesWithoutRoom++; // Incrementar o contador de aulas sem sala
+            return true; // Incluir no filtro
+        }
+        return false; // Excluir do filtro
+    });
+
+    if (!filteredData.length) {
+        alert("Nenhuma aula encontrada com 'Sala da aula' vazia.");
+        return;
+    }
+
+
+    scheduleTable.setData(filteredData);
+
+});
