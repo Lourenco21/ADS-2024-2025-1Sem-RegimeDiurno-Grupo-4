@@ -761,23 +761,24 @@ document.getElementById("timeRegulationsButton").addEventListener("click", funct
     };
 
     // Definindo os limites de horário
-    const startLimit = parseTime("08:30:00"); // 8:30 AM
+    const startLimit = parseTime("08:00:00"); // 8:00 AM
     const endLimit = parseTime("21:00:00"); // 9:00 PM
     const maxDuration = 180; // 3 horas (180 minutos)
 
     // Filtrar os dados de acordo com as condições **não atendidas**
     const filteredData = scheduleData.filter(row => {
+        const contexto = row["Características da sala pedida para a aula"] ? row["Características da sala pedida para a aula"].toLowerCase().trim() : "";
         const start = parseTime(row["Início"]);
         const end = parseTime(row["Fim"]);
 
         totalClasses++; // Incrementa o total de aulas
-
+        const textoExcluido = "Não necessita de sala".toLowerCase();
         // Verificar se a aula não está dentro do horário permitido e tem mais de 3 horas de duração
-        const isBeforeStartLimit = start < startLimit; // Aula começa antes das 8:30
+        const isBeforeStartLimit = start < startLimit; // Aula começa antes das 8:00
         const isAfterEndLimit = start > endLimit; // Aula começa depois das 21:00
         const hasInvalidDuration = (end - start) > maxDuration; // Duração maior que 3 horas
 
-        if (isBeforeStartLimit || isAfterEndLimit || hasInvalidDuration) {
+        if ((isBeforeStartLimit || isAfterEndLimit || hasInvalidDuration) && contexto !== textoExcluido) {
             filteredClasses++; // Incrementa o contador de aulas filtradas
             return true; // Incluir no filtro se não cumpre as restrições
         }
@@ -882,7 +883,7 @@ function calculateTimeRegulationMetrics(){
     };
 
     // Definindo os limites de horário
-    const startLimit = parseTime("08:30:00"); // 8:30 AM
+    const startLimit = parseTime("08:00:00"); // 8:00 AM
     const endLimit = parseTime("21:00:00"); // 9:00 PM
     const maxDuration = 180; // 3 horas (180 minutos)
 
@@ -890,15 +891,16 @@ function calculateTimeRegulationMetrics(){
     const filteredData = scheduleData.filter(row => {
         const start = parseTime(row["Início"]);
         const end = parseTime(row["Fim"]);
+        const contexto = row["Características da sala pedida para a aula"] ? row["Características da sala pedida para a aula"].toLowerCase().trim() : "";
+        totalClasses++; // Incrementar o total de aulas
 
-        totalClasses++; // Incrementa o total de aulas
-
+        const textoExcluido = "Não necessita de sala".toLowerCase();
         // Verificar se a aula não está dentro do horário permitido e tem mais de 3 horas de duração
-        const isBeforeStartLimit = start < startLimit; // Aula começa antes das 8:30
+        const isBeforeStartLimit = start < startLimit; // Aula começa antes das 8:00
         const isAfterEndLimit = start > endLimit; // Aula começa depois das 21:00
         const hasInvalidDuration = (end - start) > maxDuration; // Duração maior que 3 horas
 
-        if (isBeforeStartLimit || isAfterEndLimit || hasInvalidDuration) {
+        if ((isBeforeStartLimit || isAfterEndLimit || hasInvalidDuration) && contexto !== textoExcluido) {
             filteredClasses++; // Incrementa o contador de aulas filtradas
         }
     });
