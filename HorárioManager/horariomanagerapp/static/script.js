@@ -132,6 +132,14 @@ function checkIfFilesLoaded() {
 // Dynamically generate columns from data
 function generateColumns(data) {
     return Object.keys(data[0] || {}).map((field, index) => {
+        const nonEditableColumns = [
+            "Curso",
+            "Unidade de execução",
+            "Turno",
+            "Turma",
+            "Lotação",
+            "Características reais da sala"
+        ];
         return {
             title: field.charAt(0).toUpperCase() + field.slice(1),
             field: field,
@@ -139,7 +147,7 @@ function generateColumns(data) {
             headerFilter: "input",  // Enable input filter for each column
             headerFilterPlaceholder: "Search...",
             headerWordWrap: true,
-            editor: true,
+            editor: !nonEditableColumns.includes(field)
         };
     });
 }
@@ -608,7 +616,7 @@ document.getElementById("resetFilterButton").addEventListener("click", function 
 });
 
 scheduleTable.on("cellDblClick", function(e, cell) {
-    cell.edit();
+       cell.edit(); // Allow editing if not in the non-editable list
 });
 
 // Recalculate metrics on cell edit
@@ -821,6 +829,58 @@ document.getElementById("timeRegulationsButton").addEventListener("click", funct
     initialTimeRegulationMetrics = regulationFailPercentage;
 });
 
+
+document.getElementById("matchingCharacteristicsButton").addEventListener("click", function () {
+    resetFiltersAndMetrics(); // Reset any previous filters or metrics (if needed)
+
+    // Get the schedule data
+    const scheduleData = scheduleTable.getData();
+
+    if (!scheduleData.length) {
+        alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
+        return;
+    }
+
+    // Function to compare features and return rows with non-matching features
+    const filteredData = scheduleData.filter(row => {
+        let requestedFeatures = row["Características da sala pedida para a aula"]
+            ? row["Características da sala pedida para a aula"].toLowerCase().trim().split(",")
+            : [];
+
+        // If the requested features are empty or say "Não necessita de sala", skip filtering
+        if (!requestedFeatures.length || requestedFeatures[0] === "não necessita de sala") {
+            return false;
+        }
+
+        // Special case for "Sala/anfiteatro aulas"
+        if (row["Características da sala pedida para a aula"].toLowerCase().trim() === "sala/anfiteatro aulas") {
+            requestedFeatures.push("sala de aulas normal", "anfiteatro aulas");
+        }
+
+        const actualFeatures = row["Características reais da sala"]
+            ? row["Características reais da sala"].toLowerCase().trim().split(",")
+            : [];
+
+        // Check if at least one requested feature matches any actual feature
+        const matches = requestedFeatures.some(requestedFeature =>
+            actualFeatures.some(actualFeature => actualFeature.toLowerCase().includes(requestedFeature.trim()))
+        );
+
+        // If no match is found, include the row
+        return !matches;
+    });
+
+    if (!filteredData.length) {
+        alert("Nenhuma sala com características divergentes encontrada.");
+        return;
+    }
+
+    // Update the table with the filtered data (rows with non-matching features)
+    scheduleTable.setData(filteredData);
+});
+
+
+
 function calculateNoRoomMetrics(){
 
     let totalClasses = 0;
@@ -911,4 +971,128 @@ function calculateTimeRegulationMetrics(){
 
 }
 
+function getRoomCharacteristics(roomName) {
+    // Assuming characteristicsTable is the Tabulator instance for the room characteristics table
+    const characteristicsData = characteristicsTable.getData(); // Get all room characteristics data
+    const columns = characteristicsTable.getColumns();
+    // Find the room that matches the name
+    const room = characteristicsData.find(row => row["Nome sala"] === roomName); // Replace "Room Name" with the actual column name in your characteristics table
 
+    if (room) {
+        // Collect all characteristics marked with "X" (excluding "Horário sala visível portal público")
+        const features = Object.keys(room)
+            .filter(col => col !== "Horário sala visível portal público" && room[col] === "X")
+            .join(", "); // Join features with commas
+        return {
+            capacity: room["Capacidade Normal"], // Replace with the correct column name for capacity
+            features: features // Features will now be a comma-separated string
+        };
+    } else {
+        return null;
+    }
+}
+
+/*function getMatchingRooms(requestedFeature) {
+    const matchingRooms = [];
+
+    // If the requested feature is "Não necessita de sala", return no rooms
+    if (requestedFeature && requestedFeature.trim().toLowerCase() === "não necessita de sala") {
+        return matchingRooms; // Return an empty array, meaning no rooms are recommended
+    }
+
+    // If no feature is requested, return all rooms
+    if (!requestedFeature || requestedFeature.trim() === "") {
+        const allRooms = characteristicsTable.getData(); // Get all room data
+        allRooms.forEach(room => {
+            if (room["Sala"] && room["Sala"].trim() !== "") {
+                matchingRooms.push(room["Sala"]); // Add the room to matching rooms
+            }
+        });
+        return matchingRooms;
+    }
+
+    // Otherwise, find rooms that match the requested feature
+    const requestedFeatureLower = requestedFeature.toLowerCase().trim();
+    const allRooms = characteristicsTable.getData();
+
+    allRooms.forEach(room => {
+        const roomFeatures = Object.keys(room).filter(key => key !== "Sala" && room[key] === "X");
+
+
+        if (requestedFeatureLower === "sala/anfiteatro aulas") {
+            const hasNormalClassroom = requestedFeatureLower.includes("Sala de Aulas normal");
+            const hasAuditorium = requestedFeatureLower.includes("Anfiteatro aulas");
+
+        }
+        if (roomFeatures.some(feature => feature.toLowerCase() === requestedFeatureLower)) {
+            matchingRooms.push(room["Sala"]);
+        }
+
+
+    });
+    return matchingRooms;
+}*/
+
+scheduleTable.on("cellEdited", function (cell) {
+   // Ensure the edited column is "Sala da aula"
+    if (cell.getColumn().getField() === "Sala da aula") {
+        const originalValue = cell.getOldValue(); // Get the original value of the cell (before the edit)
+        const roomName = cell.getValue(); // Get the new value of the cell (the room name entered by the user)
+        const row = cell.getRow();
+        if (!roomName) {
+            // Clear the "Lotação" and "Características reais da sala" columns
+            row.update({
+                "Lotação": "", // Clear Lotação
+                "Características reais da sala": "" // Clear Características reais da sala
+            });
+        }
+        if (roomName) {
+            // Get the room characteristics based on the selected room
+            const roomCharacteristics = getRoomCharacteristics(roomName);
+
+            if (roomCharacteristics) {
+                // If the room is found, update the corresponding row with capacity and features
+
+                row.update({
+                    "Lotação": roomCharacteristics.capacity, // Update the "Lotação" column with the capacity
+                    "Características reais da sala": roomCharacteristics.features // Update the "Características reais da sala" column with the features
+                });
+            } else {
+                // If the room is not found, revert the "Sala da aula" column to its original value
+                alert("Room not found in the characteristics table. Changes will not be saved.");
+                cell.setValue(originalValue); // Revert the value to the original value before the edit
+            }
+        }
+    }
+});
+
+function updateScheduleWithRoomCharacteristics() {
+    const rows = scheduleTable.getRows();
+    rows.forEach(row => {
+        const rowData = row.getData();
+        const roomName = rowData["Sala da aula"];
+
+        if (roomName) {
+
+            const roomData = getRoomCharacteristics(roomName);
+
+            if (roomData) {
+
+                row.update({
+                    "Lotação": roomData.capacity,
+                    "Características reais da sala": roomData.features
+                });
+            } else {
+
+                row.update({
+                    "Lotação": "",
+                    "Características reais da sala": ""
+                });
+            }
+        }
+    });
+}
+
+document.getElementById("updateScheduleCharacteristicsButton").addEventListener("click", function () {
+    updateScheduleWithRoomCharacteristics();
+});
