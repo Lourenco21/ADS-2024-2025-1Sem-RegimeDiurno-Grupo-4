@@ -84,10 +84,11 @@ var scheduleTable = new Tabulator("#schedule-table", {
         const updatedOverlapMetrics = calculateOverlapMetrics();
         const updatedNoRoomMetrics = calculateNoRoomMetrics();
         const updatedTimeRegulationMetrics = calculateTimeRegulationMetrics();
+        const updatedWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
 
         // Show the updated balance if metrics were initialized
-        if (initialOvercrowdMetrics !== undefined && initialOverlapMetrics !== undefined && initialNoRoomMetrics !== undefined && initialTimeRegulationMetrics !== undefined) {
-            showMetricBalance(initialOvercrowdMetrics, updatedOvercrowdedMetrics, initialOverlapMetrics, updatedOverlapMetrics, initialNoRoomMetrics, updatedNoRoomMetrics, initialTimeRegulationMetrics, updatedTimeRegulationMetrics);
+        if (initialOvercrowdMetrics !== undefined && initialOverlapMetrics !== undefined && initialNoRoomMetrics !== undefined && initialTimeRegulationMetrics !== undefined && initialWrongCharacteristicsMetrics !== undefined) {
+            showMetricBalance(initialOvercrowdMetrics, updatedOvercrowdedMetrics, initialOverlapMetrics, updatedOverlapMetrics, initialNoRoomMetrics, updatedNoRoomMetrics, initialTimeRegulationMetrics, updatedTimeRegulationMetrics, initialWrongCharacteristicsMetrics, updatedWrongCharacteristicsMetrics);
         } else {
             console.error("Initial metrics not set.");
         }
@@ -111,6 +112,7 @@ let initialOvercrowdMetrics = null;
 let initialOverlapMetrics = null;
 let initialNoRoomMetrics = null;
 let initialTimeRegulationMetrics = null;
+let initialWrongCharacteristicsMetrics = null;
 
 // Declare a global variable to store the original schedule data
 let originalScheduleData = [];
@@ -142,6 +144,7 @@ document.getElementById("scheduleFileInput").addEventListener("change", function
                 initialOverlapMetrics = calculateOverlapMetrics();
                 initialNoRoomMetrics = calculateNoRoomMetrics();
                 initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
+                initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
             },
             error: function (error) {
                 alert("There was an error parsing the schedule CSV file.");
@@ -350,10 +353,11 @@ document.getElementById("overcrowdedFilterButton").addEventListener("click", fun
 
         metricDisplay.style.display = "block";
 
-        initialOvercrowdMetrics = overcrowdedPercentage;
+        initialOvercrowdMetrics = calculateOvercrowdedMetrics();
         initialOverlapMetrics = calculateOverlapMetrics();
         initialNoRoomMetrics = calculateNoRoomMetrics();
         initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
+        initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
 
 });
 
@@ -482,9 +486,10 @@ document.getElementById("overlapFilterButton").addEventListener("click", functio
         metricDisplay.style.display = "block";
 
         initialOvercrowdMetrics = calculateOvercrowdedMetrics();
-        initialOverlapMetrics = overlapPercentage;
+        initialOverlapMetrics = calculateOverlapMetrics();
         initialNoRoomMetrics = calculateNoRoomMetrics();
         initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
+        initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
 
 });
 
@@ -627,7 +632,7 @@ function calculateOverlapMetrics() {
 }
 
 
-function showMetricBalance(initialOvercrowd, updatedOvercrowd, initialOverlap, updatedOverlap, initialNoRoom, updatedNoRoom, initialFailRegulation, updatedFailRegulation) {
+function showMetricBalance(initialOvercrowd, updatedOvercrowd, initialOverlap, updatedOverlap, initialNoRoom, updatedNoRoom, initialFailRegulation, updatedFailRegulation, initialWrongCharacteristics, updatedWrongCharacteristics) {
     let balanceDisplay = document.getElementById("metricBalance");
 
     if (!balanceDisplay) {
@@ -642,12 +647,14 @@ function showMetricBalance(initialOvercrowd, updatedOvercrowd, initialOverlap, u
     let overlapResult = "No Quality change";
     let noRoomResult = "No Quality change";
     let failRegulationResult = "No Quality change";
+    let wrongCharacteristicsResult = "No Quality change";
 
     // Calculate the differences
     const overcrowdedPercentageDiff = (updatedOvercrowd - initialOvercrowd);
     const overlapPercentageDiff = (updatedOverlap - initialOverlap);
     const noRoomPercentageDiff = (updatedNoRoom - initialNoRoom);
     const failRegulationPercentageDiff = (updatedFailRegulation - initialFailRegulation);
+    const wrongCharacteristicsPercentageDiff = (updatedWrongCharacteristics - initialWrongCharacteristics);
 
     if(overcrowdedPercentageDiff < 0)
         overcrowdedResult = "Improved Quality"
@@ -669,12 +676,18 @@ function showMetricBalance(initialOvercrowd, updatedOvercrowd, initialOverlap, u
     else if(failRegulationPercentageDiff > 0)
         failRegulationResult = "Decreased Quality"
 
+    if(wrongCharacteristicsPercentageDiff < 0)
+        wrongCharacteristicsResult = "Improved Quality"
+    else if(wrongCharacteristicsPercentageDiff > 0)
+        wrongCharacteristicsResult = "Decreased Quality"
+
     balanceDisplay.innerHTML = `
         <h4 style="text-align: center; margin: 0;">Metrics Update Balance</h4>
         <p>Overcrowd Result: ${overcrowdedResult}</p>
         <p>Overlap Result: ${overlapResult}</p>
         <p>Without room Result: ${noRoomResult}</p>
         <p>Time Regulation Fail Result: ${failRegulationResult}</p>
+        <p>Wrong Characteristics Result: ${wrongCharacteristicsResult}</p>
     `;
 
     balanceDisplay.style.display = "block";
@@ -698,6 +711,7 @@ function resetFiltersAndMetrics() {
     initialOverlapMetrics = calculateOverlapMetrics();
     initialNoRoomMetrics = calculateNoRoomMetrics();
     initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
+    initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
 
 }
 document.getElementById("resetFilterButton").addEventListener("click", function () {
@@ -714,10 +728,11 @@ scheduleTable.on("cellEdited", function (cell) {
     const updatedOverlapMetrics = calculateOverlapMetrics();
     const updatedNoRoomMetrics = calculateNoRoomMetrics();
     const updatedTimeRegulationMetrics = calculateTimeRegulationMetrics();
+    const updatedWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
 
 
-    if (initialOvercrowdMetrics !== undefined && initialOverlapMetrics !== undefined && initialNoRoomMetrics !== undefined && initialTimeRegulationMetrics !== undefined) {
-        showMetricBalance(initialOvercrowdMetrics, updatedOvercrowdedMetrics, initialOverlapMetrics, updatedOverlapMetrics, initialNoRoomMetrics, updatedNoRoomMetrics, initialTimeRegulationMetrics, updatedTimeRegulationMetrics);
+    if (initialOvercrowdMetrics !== undefined && initialOverlapMetrics !== undefined && initialNoRoomMetrics !== undefined && initialTimeRegulationMetrics !== undefined && initialWrongCharacteristicsMetrics !== undefined) {
+        showMetricBalance(initialOvercrowdMetrics, updatedOvercrowdedMetrics, initialOverlapMetrics, updatedOverlapMetrics, initialNoRoomMetrics, updatedNoRoomMetrics, initialTimeRegulationMetrics, updatedTimeRegulationMetrics, initialWrongCharacteristicsMetrics, updatedWrongCharacteristicsMetrics);
     } else {
         console.error("Initial metrics are not set.");
     }
@@ -725,6 +740,7 @@ scheduleTable.on("cellEdited", function (cell) {
     initialOverlapMetrics = updatedOverlapMetrics;
     initialNoRoomMetrics = updatedNoRoomMetrics;
     initialTimeRegulationMetrics = updatedTimeRegulationMetrics;
+    initialWrongCharacteristicsMetrics = updatedWrongCharacteristicsMetrics;
 });
 
 
@@ -826,8 +842,9 @@ document.getElementById("classWithoutRoomButton").addEventListener("click", func
 
     initialOvercrowdMetrics = calculateOvercrowdedMetrics();
     initialOverlapMetrics = calculateOverlapMetrics();
-    initialNoRoomMetrics = classesWithoutRoomPercentage;
+    initialNoRoomMetrics = calculateNoRoomMetrics();
     initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
+    initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
 
 });
 
@@ -915,7 +932,8 @@ document.getElementById("timeRegulationsButton").addEventListener("click", funct
     initialOvercrowdMetrics = calculateOvercrowdedMetrics();
     initialOverlapMetrics = calculateOverlapMetrics();
     initialNoRoomMetrics = calculateNoRoomMetrics();
-    initialTimeRegulationMetrics = regulationFailPercentage;
+    initialTimeRegulationMetrics = calculateOverlapMetrics();
+    initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
 });
 
 
@@ -923,7 +941,9 @@ document.getElementById("matchingCharacteristicsButton").addEventListener("click
     resetFiltersAndMetrics(); // Reset any previous filters or metrics (if needed)
 
     // Get the schedule data
+
     const scheduleData = scheduleTable.getData();
+    let totalClasses = scheduleData.length;
 
     if (!scheduleData.length) {
         alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
@@ -966,9 +986,85 @@ document.getElementById("matchingCharacteristicsButton").addEventListener("click
 
     // Update the table with the filtered data (rows with non-matching features)
     scheduleTable.setData(filteredData);
+
+    const wrongCharacteristicsPercentage = totalClasses > 0 ? ((filteredData.length / totalClasses) * 100).toFixed(2) : 0;
+
+    let metricDisplay = document.getElementById("characteristicsMetrics");
+        if (!metricDisplay) {
+            // Create the metric display element if it doesn't exist
+            metricDisplay = document.createElement("div");
+            metricDisplay.id = "overcrowdedMetrics";
+            metricDisplay.style.marginTop = "10px"; // Add some spacing
+            metricDisplay.style.fontWeight = "bold"; // Make the text bold
+            metricDisplay.style.display = "block";
+            document.getElementById("overcrowdedFilterButton").insertAdjacentElement("afterend", metricDisplay);
+        }
+
+        // Update the metric display content
+        metricDisplay.innerHTML = `
+            <p>Total de aulas: ${totalClasses}</p>
+            <p>Aulas que não cumprem regulamentos: ${filteredData.length}</p>
+            <p>Percentagem de superlotação: ${wrongCharacteristicsPercentage}%</p>
+        `;
+
+        metricDisplay.style.display = "block";
+
+        initialOvercrowdMetrics = calculateOvercrowdedMetrics();
+        initialOverlapMetrics = calculateOverlapMetrics();
+        initialNoRoomMetrics = calculateNoRoomMetrics();
+        initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
+        initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
+
 });
 
+function calculateMatchingCharacteristicsMetrics(){
 
+    let totalClasses = 0;
+    let classesWithoutMatchingCharacteristics = 0;
+
+    // Get the schedule data
+    const scheduleData = scheduleTable.getData();
+
+    if (!scheduleData.length) {
+        alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
+        return;
+    }
+
+    // Function to compare features and return rows with non-matching features
+    const filteredData = scheduleData.filter(row => {
+        totalClasses++;
+        let requestedFeatures = row["Características da sala pedida para a aula"]
+            ? row["Características da sala pedida para a aula"].toLowerCase().trim().split(",")
+            : [];
+
+        // If the requested features are empty or say "Não necessita de sala", skip filtering
+        if (!requestedFeatures.length || requestedFeatures[0] === "não necessita de sala") {
+            return;
+        }
+
+        // Special case for "Sala/anfiteatro aulas"
+        if (row["Características da sala pedida para a aula"].toLowerCase().trim() === "sala/anfiteatro aulas") {
+            requestedFeatures.push("sala de aulas normal", "anfiteatro aulas");
+            classesWithoutMatchingCharacteristics++;
+        }
+
+        const actualFeatures = row["Características reais da sala"]
+            ? row["Características reais da sala"].toLowerCase().trim().split(",")
+            : [];
+
+        // Check if at least one requested feature matches any actual feature
+        const matches = requestedFeatures.some(requestedFeature =>
+            actualFeatures.some(actualFeature => actualFeature.toLowerCase().includes(requestedFeature.trim()))
+        );
+
+        // If no match is found, include the row
+        return !matches;
+    });
+
+    const wrongCharacteristicsPercentage = totalClasses > 0 ? ((classesWithoutMatchingCharacteristics / totalClasses) * 100).toFixed(2) : 0;
+
+    return wrongCharacteristicsPercentage;
+}
 
 function calculateNoRoomMetrics(){
 
