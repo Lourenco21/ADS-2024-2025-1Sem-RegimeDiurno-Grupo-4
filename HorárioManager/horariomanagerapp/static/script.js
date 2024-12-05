@@ -1,3 +1,72 @@
+function getMatchingRooms(rowData) {
+
+    const requestedFeatures = rowData["Características da sala pedida para a aula"]
+        ? rowData["Características da sala pedida para a aula"]
+              .toLowerCase()
+              .trim()
+              .split(",")
+        : [];
+    const requiredCapacity = parseInt(rowData["Inscritos no turno"], 10) || 0;
+
+    if (!requestedFeatures.length || requestedFeatures[0] === "não necessita de sala") {
+        return []; // No rooms needed
+    }
+
+    if (requestedFeatures.includes("sala/anfiteatro aulas")) {
+        requestedFeatures.push("sala de aulas normal", "anfiteatro aulas");
+    }
+
+    const roomData = characteristicsTable.getData();
+
+    // Extract date and time information
+    const classDate = rowData["Dia"]; // Replace with your actual column name for the date in DD/MM/YYYY
+    const classStart = rowData["Início"]; // Replace with your actual column name for start time
+    const classEnd = rowData["Fim"]; // Replace with your actual column name for end time
+
+    // Filter rooms based on features, capacity, and availability
+    const matchingRooms = roomData.filter(room => {
+        const actualFeatures = Object.keys(room)
+            .filter(col => col !== "Horário sala visível portal público" && room[col] === "X")
+            .map(col => col.replace("Características reais da sala", "").trim().toLowerCase()); // Clean up feature names
+
+        const roomCapacity = parseInt(room["Capacidade Normal"], 10) || 0;
+        const roomName = room["Nome sala"]; // Adjust column name as necessary
+
+
+        // Check if the room meets feature and capacity requirements
+        const hasMatchingFeature = requestedFeatures.some(requestedFeature =>
+            actualFeatures.some(actualFeature =>
+                actualFeature.includes(requestedFeature.trim().toLowerCase())
+            )
+        );
+        const meetsCapacity = roomCapacity >= requiredCapacity;
+        console.log("Requested Features:", requestedFeatures);
+        console.log("Actual Features:", actualFeatures);
+        // Check room availability
+        const isRoomAvailable = !scheduleTable.getData().some(scheduleRow => {
+            const scheduledRoom = scheduleRow["Sala da aula"];
+            const scheduledDate = scheduleRow["Dia"];
+            const scheduledStart = scheduleRow["Início"];
+            const scheduledEnd = scheduleRow["Fim"];
+
+            // Check for overlapping times on the same day for the same room
+            return (
+                scheduledRoom === roomName &&
+                scheduledDate === classDate && // Compare dates directly as strings
+                ((classStart >= scheduledStart && classStart < scheduledEnd) || // Overlaps start
+                 (classEnd > scheduledStart && classEnd <= scheduledEnd) || // Overlaps end
+                 (classStart <= scheduledStart && classEnd >= scheduledEnd)) // Encloses
+            );
+        });
+
+        // Room is valid if it meets all conditions
+        return hasMatchingFeature && meetsCapacity && isRoomAvailable;
+    });
+
+    console.log("Matching rooms for row:", rowData, matchingRooms);
+    return matchingRooms.map(room => room["Nome sala"]); // Adjust column name as necessary
+}
+
 // Initialize Tabulator
 var scheduleTable = new Tabulator("#schedule-table", {
     layout: "fitDataFill",
@@ -140,6 +209,26 @@ function generateColumns(data) {
             "Lotação",
             "Características reais da sala"
         ];
+                if (field === "Sala da aula") {
+            return {
+                title: field.charAt(0).toUpperCase() + field.slice(1),
+                field: field,
+                headerMenu: headerMenu, // Add header menu to each column
+                headerFilter: "input",  // Enable input filter for each column
+                headerFilterPlaceholder: "Search...",
+                headerWordWrap: true,
+                editor: "list", // Update from "select" to "list" as "select" is deprecated
+                editorParams: function (cell) {
+                    const rowData = cell.getRow().getData(); // Get data of the current row
+                    const matchingRooms = getMatchingRooms(rowData); // Get the matching rooms based on row data
+                    const roomOptions = matchingRooms.length > 0 ? matchingRooms : ["No matching rooms"];
+                    roomOptions.unshift("Sem sala");  // Add an empty string option to the beginning
+            return {
+                values: roomOptions
+            };
+        }
+    };
+}
         return {
             title: field.charAt(0).toUpperCase() + field.slice(1),
             field: field,
@@ -1039,13 +1128,17 @@ scheduleTable.on("cellEdited", function (cell) {
         const originalValue = cell.getOldValue(); // Get the original value of the cell (before the edit)
         const roomName = cell.getValue(); // Get the new value of the cell (the room name entered by the user)
         const row = cell.getRow();
-        if (!roomName) {
-            // Clear the "Lotação" and "Características reais da sala" columns
+
+        if (roomName === "Sem sala") {
+            // If "Sem sala" is selected, clear the "Lotação" and "Características reais da sala"
             row.update({
+                "Sala da aula": "",
                 "Lotação": "", // Clear Lotação
                 "Características reais da sala": "" // Clear Características reais da sala
             });
+            return; // Exit the function early, no need to proceed further
         }
+
         if (roomName) {
             // Get the room characteristics based on the selected room
             const roomCharacteristics = getRoomCharacteristics(roomName);
@@ -1062,6 +1155,13 @@ scheduleTable.on("cellEdited", function (cell) {
                 alert("Room not found in the characteristics table. Changes will not be saved.");
                 cell.setValue(originalValue); // Revert the value to the original value before the edit
             }
+        }
+        if (!roomName) {
+            // Clear the "Lotação" and "Características reais da sala" columns
+            row.update({
+                "Lotação": "", // Clear Lotação
+                "Características reais da sala": "" // Clear Características reais da sala
+            });
         }
     }
 });
