@@ -40,9 +40,8 @@ function getMatchingRooms(rowData) {
             )
         );
         const meetsCapacity = roomCapacity >= requiredCapacity;
-        console.log("Requested Features:", requestedFeatures);
-        console.log("Actual Features:", actualFeatures);
         // Check room availability
+        console.log(scheduleTable.getData().length)
         const isRoomAvailable = !scheduleTable.getData().some(scheduleRow => {
             const scheduledRoom = scheduleRow["Sala da aula"];
             const scheduledDate = scheduleRow["Dia"];
@@ -362,37 +361,28 @@ document.getElementById("overlapFilterButton").addEventListener("click", functio
 
     resetFiltersAndMetrics();
 
-    // Get the data from the schedule table
+
+    // Check if the table has data
     const scheduleData = scheduleTable.getData();
-
-    let totalClasses = scheduleData.length;
-    let overlapClasses = 0;
-
     if (!scheduleData.length) {
         alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
         return;
     }
 
-    // Ensure required columns exist
+    // Check if required columns exist
     const hasRequiredColumns = scheduleData.some(row =>
         "Início" in row &&
         "Fim" in row &&
         "Sala da aula" in row &&
         "Dia" in row
     );
-
     if (!hasRequiredColumns) {
         alert("O ficheiro CSV não contém as colunas necessárias ('Início', 'Fim', 'Sala da aula', 'Dia').");
         return;
     }
 
-    // Filter out rows with empty "Sala da aula"
-    const validData = scheduleData.filter(row => row["Sala da aula"] && row["Sala da aula"].trim() !== "");
-
-    if (!validData.length) {
-        alert("Todas as aulas possuem 'Sala da aula' vazia. Nenhuma sobreposição será calculada.");
-        return;
-    }
+    let totalClasses = scheduleData.length;
+    let overlapClasses = 0;
 
     // Convert time to minutes
     const parseTime = (timeStr) => {
@@ -401,7 +391,7 @@ document.getElementById("overlapFilterButton").addEventListener("click", functio
     };
 
     // Preprocess data to add parsed times and a group key
-    validData.forEach(row => {
+    scheduleData.forEach(row => {
         row._start = parseTime(row["Início"]);
         row._end = parseTime(row["Fim"]);
         row._key = `${row["Sala da aula"].trim()}_${row["Dia"].trim()}`;
@@ -417,10 +407,10 @@ document.getElementById("overlapFilterButton").addEventListener("click", functio
         }, {});
     };
 
-    const groupedData = groupBy(validData, row => row._key);
+    const groupedData = groupBy(scheduleData, row => row._key);
 
-    const overlaps = [];
-    const addedRows = new Set(); // Ensure no duplicate rows are added
+    // Prepare a set of overlapping rows
+    const overlappingRowIds = new Set();
 
     // Check for overlaps within each group
     Object.values(groupedData).forEach(group => {
@@ -443,23 +433,19 @@ document.getElementById("overlapFilterButton").addEventListener("click", functio
 
                 // Check if rows overlap
                 if ((startA < endB && startA >= startB) || (startB < endA && startB >= startA)) {
-                    if (!addedRows.has(rowA)) {
-                        overlaps.push(rowA);
-                        addedRows.add(rowA);
-                        overlapClasses++;
-                    }
-                    if (!addedRows.has(rowB)) {
-                        overlaps.push(rowB);
-                        addedRows.add(rowB);
-                        overlapClasses++;
-                    }
+                    overlappingRowIds.add(rowA);
+                    overlappingRowIds.add(rowB);
                 }
             }
         }
     });
 
-    // Update the table to display only overlapping rows
-    scheduleTable.setData(overlaps);
+    // Apply a filter to show only overlapping rows
+    scheduleTable.setFilter(row => {
+        const isOverlapping = overlappingRowIds.has(row);
+        if (isOverlapping) overlapClasses++;
+        return isOverlapping;
+    });
 
     const overlapPercentage = totalClasses > 0 ? ((overlapClasses / totalClasses) * 100).toFixed(2) : 0;
 
@@ -776,11 +762,10 @@ document.getElementById("classWithoutRoomButton").addEventListener("click", func
 
     resetFiltersAndMetrics();
 
+    const scheduleData = scheduleTable.getData();
+
     let totalClasses = 0;
     let classesWithoutRoom = 0;
-
-    // Obter os dados da tabela de horários
-    const scheduleData = scheduleTable.getData();
 
     if (!scheduleData.length) {
         alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
@@ -794,26 +779,23 @@ document.getElementById("classWithoutRoomButton").addEventListener("click", func
         return;
     }
 
-    // Filtrar os dados manualmente
-    const filteredData = scheduleData.filter(row => {
-        const contexto = row["Características da sala pedida para a aula"] ? row["Características da sala pedida para a aula"].toLowerCase().trim() : "";
-        totalClasses++; // Incrementar o total de aulas
+    // Define the exclusion text and filter logic
+    const textoExcluido = "Não necessita de sala".toLowerCase();
 
-        const textoExcluido = "Não necessita de sala".toLowerCase();
+    scheduleTable.setFilter(row => {
+        totalClasses++; // Increment the total classes count
+
+        const contexto = row["Características da sala pedida para a aula"]
+            ? row["Características da sala pedida para a aula"].toLowerCase().trim()
+            : "";
+
+        // Check if the row meets the criteria for "without room"
         if ((!row["Sala da aula"] || row["Sala da aula"].trim() === "") && contexto !== textoExcluido) {
-            classesWithoutRoom++; // Incrementar o contador de aulas sem sala
-            return true; // Incluir no filtro
+            classesWithoutRoom++; // Increment the "without room" counter
+            return true; // Include this row in the filter
         }
-        return false; // Excluir do filtro
+        return false; // Exclude this row from the filter
     });
-
-    if (!filteredData.length) {
-        alert("Nenhuma aula encontrada com 'Sala da aula' vazia.");
-        return;
-    }
-
-
-    scheduleTable.setData(filteredData);
 
     const classesWithoutRoomPercentage = totalClasses > 0 ? ((classesWithoutRoom / totalClasses) * 100).toFixed(2) : 0;
 
@@ -832,7 +814,7 @@ document.getElementById("classWithoutRoomButton").addEventListener("click", func
         metricDisplay.innerHTML = `
             <p>Total de aulas: ${totalClasses}</p>
             <p>Aulas sem sala: ${classesWithoutRoom}</p>
-            <p>Percentagem de superlotação: ${classesWithoutRoomPercentage}%</p>
+            <p>Percentagem de aulas sem sala: ${classesWithoutRoomPercentage}%</p>
         `;
 
         metricDisplay.style.display = "block";
@@ -853,7 +835,7 @@ document.getElementById("timeRegulationsButton").addEventListener("click", funct
     let totalClasses = 0;
     let filteredClasses = 0;
 
-    // Obter os dados da tabela de horários
+    // Get the schedule table data
     const scheduleData = scheduleTable.getData();
 
     if (!scheduleData.length) {
@@ -867,45 +849,40 @@ document.getElementById("timeRegulationsButton").addEventListener("click", funct
         return;
     }
 
-    // Função para converter hora no formato HH:MM:SS para minutos
+    // Function to convert time in HH:MM:SS format to minutes
     const parseTime = (timeStr) => {
         const [hours, minutes] = timeStr.split(":").map(Number);
-        return hours * 60 + minutes; // Retorna o total de minutos
+        return hours * 60 + minutes; // Return total minutes
     };
 
-    // Definindo os limites de horário
+    // Define time limits
     const startLimit = parseTime("08:00:00"); // 8:00 AM
     const endLimit = parseTime("21:00:00"); // 9:00 PM
-    const maxDuration = 180; // 3 horas (180 minutos)
+    const maxDuration = 180; // 3 hours (180 minutes)
 
-    // Filtrar os dados de acordo com as condições **não atendidas**
-    const filteredData = scheduleData.filter(row => {
-        const contexto = row["Características da sala pedida para a aula"] ? row["Características da sala pedida para a aula"].toLowerCase().trim() : "";
+    // Apply filter to display only rows that don't meet time regulations
+    scheduleTable.setFilter(row => {
+        totalClasses++; // Increment total classes
+
+        const contexto = row["Características da sala pedida para a aula"]
+            ? row["Características da sala pedida para a aula"].toLowerCase().trim()
+            : "";
         const start = parseTime(row["Início"]);
         const end = parseTime(row["Fim"]);
 
-        totalClasses++; // Incrementa o total de aulas
         const textoExcluido = "Não necessita de sala".toLowerCase();
-        // Verificar se a aula não está dentro do horário permitido e tem mais de 3 horas de duração
-        const isBeforeStartLimit = start < startLimit; // Aula começa antes das 8:00
-        const isAfterEndLimit = start > endLimit; // Aula começa depois das 21:00
-        const hasInvalidDuration = (end - start) > maxDuration; // Duração maior que 3 horas
+
+        // Check if class violates time regulations
+        const isBeforeStartLimit = start < startLimit; // Class starts before 8:00 AM
+        const isAfterEndLimit = start > endLimit; // Class starts after 9:00 PM
+        const hasInvalidDuration = (end - start) > maxDuration; // Duration exceeds 3 hours
 
         if ((isBeforeStartLimit || isAfterEndLimit || hasInvalidDuration) && contexto !== textoExcluido) {
-            filteredClasses++; // Incrementa o contador de aulas filtradas
-            return true; // Incluir no filtro se não cumpre as restrições
+            filteredClasses++; // Increment filtered class count
+            return true; // Include row in filter
         }
-        return false; // Excluir do filtro se cumpre as restrições
+        return false; // Exclude row from filter
     });
-
-    if (!filteredData.length) {
-        alert("Nenhuma aula encontrada que não cumpra as restrições.");
-        return;
-    }
-
-    // Atualizar a tabela com os dados filtrados
-    scheduleTable.setData(filteredData);
-
     const regulationFailPercentage = totalClasses > 0 ? ((filteredClasses / totalClasses) * 100).toFixed(2) : 0;
 
     let metricDisplay = document.getElementById("timeRegulationsMetrics");
@@ -940,7 +917,6 @@ document.getElementById("matchingCharacteristicsButton").addEventListener("click
     resetFiltersAndMetrics(); // Reset any previous filters or metrics (if needed)
 
     // Get the schedule data
-
     const scheduleData = scheduleTable.getData();
     let totalClasses = scheduleData.length;
 
@@ -949,18 +925,16 @@ document.getElementById("matchingCharacteristicsButton").addEventListener("click
         return;
     }
 
-    // Function to compare features and return rows with non-matching features
-    const filteredData = scheduleData.filter(row => {
+    scheduleTable.setFilter(row => {
         let requestedFeatures = row["Características da sala pedida para a aula"]
             ? row["Características da sala pedida para a aula"].toLowerCase().trim().split(",")
             : [];
 
-        // If the requested features are empty or say "Não necessita de sala", skip filtering
+
         if (!requestedFeatures.length || requestedFeatures[0] === "não necessita de sala") {
             return false;
         }
 
-        // Special case for "Sala/anfiteatro aulas"
         if (row["Características da sala pedida para a aula"].toLowerCase().trim() === "sala/anfiteatro aulas") {
             requestedFeatures.push("sala de aulas normal", "anfiteatro aulas");
         }
@@ -969,22 +943,12 @@ document.getElementById("matchingCharacteristicsButton").addEventListener("click
             ? row["Características reais da sala"].toLowerCase().trim().split(",")
             : [];
 
-        // Check if at least one requested feature matches any actual feature
         const matches = requestedFeatures.some(requestedFeature =>
             actualFeatures.some(actualFeature => actualFeature.toLowerCase().includes(requestedFeature.trim()))
         );
 
-        // If no match is found, include the row
         return !matches;
     });
-
-    if (!filteredData.length) {
-        alert("Nenhuma sala com características divergentes encontrada.");
-        return;
-    }
-
-    // Update the table with the filtered data (rows with non-matching features)
-    scheduleTable.setData(filteredData);
 
     const wrongCharacteristicsPercentage = totalClasses > 0 ? ((filteredData.length / totalClasses) * 100).toFixed(2) : 0;
 
@@ -999,7 +963,6 @@ document.getElementById("matchingCharacteristicsButton").addEventListener("click
             document.getElementById("overcrowdedFilterButton").insertAdjacentElement("afterend", metricDisplay);
         }
 
-        // Update the metric display content
         metricDisplay.innerHTML = `
             <p>Total de aulas: ${totalClasses}</p>
             <p>Aulas que não cumprem regulamentos: ${filteredData.length}</p>
@@ -1300,6 +1263,5 @@ document.getElementById("updateScheduleCharacteristicsButton").addEventListener(
     updateScheduleWithRoomCharacteristics();
 });
 
-function updateRow(row){
 
-}
+
