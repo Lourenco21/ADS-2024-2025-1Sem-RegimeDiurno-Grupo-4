@@ -19,18 +19,18 @@ function getMatchingRooms(rowData) {
     const roomData = characteristicsTable.getData();
 
     // Extract date and time information
-    const classDate = rowData["Dia"]; // Replace with your actual column name for the date in DD/MM/YYYY
-    const classStart = rowData["Início"]; // Replace with your actual column name for start time
-    const classEnd = rowData["Fim"]; // Replace with your actual column name for end time
+    const classDate = rowData["Dia"];
+    const classStart = rowData["Início"];
+    const classEnd = rowData["Fim"];
 
     // Filter rooms based on features, capacity, and availability
     const matchingRooms = roomData.filter(room => {
         const actualFeatures = Object.keys(room)
             .filter(col => col !== "Horário sala visível portal público" && room[col] === "X")
-            .map(col => col.replace("Características reais da sala", "").trim().toLowerCase()); // Clean up feature names
+            .map(col => col.replace("Características reais da sala", "").trim().toLowerCase());
 
         const roomCapacity = parseInt(room["Capacidade Normal"], 10) || 0;
-        const roomName = room["Nome sala"]; // Adjust column name as necessary
+        const roomName = room["Nome sala"];
 
 
         // Check if the room meets feature and capacity requirements
@@ -291,13 +291,14 @@ document.getElementById("overcrowdedFilterButton").addEventListener("click", fun
     let totalClasses = 0;
     let overcrowdedClasses = 0;
 
-    // Verificar se as colunas "Inscritos" e "Vagas" existem
+    // Check if the table has data
     const scheduleData = scheduleTable.getData();
     if (!scheduleData.length) {
         alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
         return;
     }
 
+    // Check if required columns exist
     const hasRequiredColumns = scheduleData.some(row =>
         "Inscritos no turno" in row &&
         "Lotação" in row &&
@@ -309,26 +310,22 @@ document.getElementById("overcrowdedFilterButton").addEventListener("click", fun
         return;
     }
 
-    // Filter the data manually
-    const filteredData = originalScheduleData.filter(row => {
-        const inscritos = parseFloat(row["Inscritos no turno"]) || 0; // Convert to number or default to 0
-        const vagas = parseFloat(row["Lotação"]) || 0; // Convert to number or default to 0
-        const contexto = row["Características da sala pedida para a aula"] ? row["Características da sala pedida para a aula"].toLowerCase().trim() : ""; // Trim and lowercase
-        const sala = row["Sala da aula"] ? row["Sala da aula"].trim() : ""; // Trim
-
-        const textoExcluido = "Não necessita de sala".toLowerCase(); // Text to exclude
+    // Apply a filter to hide rows that don't meet the criteria
+    scheduleTable.setFilter(row => {
+        const inscritos = parseFloat(row["Inscritos no turno"]) || 0;
+        const vagas = parseFloat(row["Lotação"]) || 0;
+        const contexto = row["Características da sala pedida para a aula"] ? row["Características da sala pedida para a aula"].toLowerCase().trim() : "";
+        const sala = row["Sala da aula"] ? row["Sala da aula"].trim() : "";
+        const textoExcluido = "Não necessita de sala".toLowerCase();
 
         totalClasses++;
         if (inscritos > vagas && contexto !== textoExcluido && sala !== "") {
             overcrowdedClasses++;
-            return true; // Include in the filtered data
+            return true; // Show this row
         }
-
-        return false; // Exclude from the filtered data
+        return false; // Hide this row
     });
 
-    // Update the table with filtered data
-    scheduleTable.setData(filteredData);
 
 
     const overcrowdedPercentage = totalClasses > 0 ? ((overcrowdedClasses / totalClasses) * 100).toFixed(2) : 0;
@@ -694,13 +691,11 @@ function showMetricBalance(initialOvercrowd, updatedOvercrowd, initialOverlap, u
 }
 
 function resetFiltersAndMetrics() {
+    scheduleTable.clearFilter();
     if (!originalScheduleData.length) {
         alert("Nenhum dado original encontrado para restaurar.");
         return;
     }
-
-    // Reset the table to the original unfiltered data
-    scheduleTable.setData(originalScheduleData);
 
     const allMetricDisplays = document.querySelectorAll("[id$='Metrics']"); // Selects all elements with an ID ending in 'Metrics'
     allMetricDisplays.forEach(metric => {
@@ -723,7 +718,11 @@ scheduleTable.on("cellDblClick", function(e, cell) {
 });
 
 // Recalculate metrics on cell edit
-scheduleTable.on("cellEdited", function (cell) {
+/*scheduleTable.on("cellEdited", function (cell) {
+    updateMetrics();
+});*/
+
+function updateMetrics(){
     const updatedOvercrowdedMetrics = calculateOvercrowdedMetrics();
     const updatedOverlapMetrics = calculateOverlapMetrics();
     const updatedNoRoomMetrics = calculateNoRoomMetrics();
@@ -741,7 +740,7 @@ scheduleTable.on("cellEdited", function (cell) {
     initialNoRoomMetrics = updatedNoRoomMetrics;
     initialTimeRegulationMetrics = updatedTimeRegulationMetrics;
     initialWrongCharacteristicsMetrics = updatedWrongCharacteristicsMetrics;
-});
+}
 
 
 // Save modified data to a new file with a user-specified name
@@ -1260,6 +1259,7 @@ scheduleTable.on("cellEdited", function (cell) {
             });
         }
     }
+    updateMetrics();
 });
 
 function updateScheduleWithRoomCharacteristics() {
@@ -1287,8 +1287,19 @@ function updateScheduleWithRoomCharacteristics() {
             }
         }
     });
+    initialOvercrowdMetrics = calculateOvercrowdedMetrics();
+    initialOverlapMetrics = calculateOverlapMetrics();
+    initialNoRoomMetrics = calculateNoRoomMetrics();
+    initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
+    initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
+    originalScheduleData = scheduleTable.getData();
+    alert("Atualização das características feita com sucesso!");
 }
 
 document.getElementById("updateScheduleCharacteristicsButton").addEventListener("click", function () {
     updateScheduleWithRoomCharacteristics();
 });
+
+function updateRow(row){
+
+}
