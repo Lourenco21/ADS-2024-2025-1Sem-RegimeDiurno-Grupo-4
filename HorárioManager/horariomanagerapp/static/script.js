@@ -373,106 +373,123 @@ document.getElementById("overcrowdedFilterButton").addEventListener("click", fun
 
 document.getElementById("overlapFilterButton").addEventListener("click", function () {
 
-    resetFiltersAndMetrics();
+resetFiltersAndMetrics();
 
-    // Get the data from the schedule table
-    const scheduleData = scheduleTable.getData();
+// Get the data from the schedule table
+const scheduleData = scheduleTable.getData();
 
-    let totalClasses = scheduleData.length;
-    let overlapClasses = 0;
+let totalClasses = scheduleData.length;
+let overlapClasses = 0;
 
-    if (!scheduleData.length) {
-        alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
-        return;
-    }
+if (!scheduleData.length) {
+    alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
+    return;
+}
 
-    // Ensure required columns exist
-    const hasRequiredColumns = scheduleData.some(row =>
-        "Início" in row &&
-        "Fim" in row &&
-        "Sala da aula" in row &&
-        "Dia" in row
-    );
+// Ensure required columns exist
+const hasRequiredColumns = scheduleData.some(row =>
+    "Início" in row &&
+    "Fim" in row &&
+    "Sala da aula" in row &&
+    "Dia" in row
+);
 
-    if (!hasRequiredColumns) {
-        alert("O ficheiro CSV não contém as colunas necessárias ('Início', 'Fim', 'Sala da aula', 'Dia').");
-        return;
-    }
+if (!hasRequiredColumns) {
+    alert("O ficheiro CSV não contém as colunas necessárias ('Início', 'Fim', 'Sala da aula', 'Dia').");
+    return;
+}
 
-    // Filter out rows with empty "Sala da aula"
-    const validData = scheduleData.filter(row => row["Sala da aula"] && row["Sala da aula"].trim() !== "");
+// Filter out rows with empty "Sala da aula"
+const validData = scheduleData.filter(row => row["Sala da aula"] && row["Sala da aula"].trim() !== "");
 
-    if (!validData.length) {
-        alert("Todas as aulas possuem 'Sala da aula' vazia. Nenhuma sobreposição será calculada.");
-        return;
-    }
+if (!validData.length) {
+    alert("Todas as aulas possuem 'Sala da aula' vazia. Nenhuma sobreposição será calculada.");
+    return;
+}
 
-    // Convert time to minutes
-    const parseTime = (timeStr) => {
-        const [hours, minutes] = timeStr.split(":").map(Number);
-        return hours * 60 + minutes;
-    };
+// Convert time to minutes
+const parseTime = (timeStr) => {
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    return hours * 60 + minutes;
+};
 
-    // Preprocess data to add parsed times and a group key
-    validData.forEach(row => {
-        row._start = parseTime(row["Início"]);
-        row._end = parseTime(row["Fim"]);
-        row._key = `${row["Sala da aula"].trim()}_${row["Dia"].trim()}`;
-    });
+// Preprocess data to add parsed times and a group key
+validData.forEach(row => {
+    row._start = parseTime(row["Início"]);
+    row._end = parseTime(row["Fim"]);
+    row._key = `${row["Sala da aula"].trim()}_${row["Dia"].trim()}`;
+});
 
-    // Group rows by "Sala da aula" and "Dia"
-    const groupBy = (data, keyFn) => {
-        return data.reduce((acc, row) => {
-            const key = keyFn(row);
-            if (!acc[key]) acc[key] = [];
-            acc[key].push(row);
-            return acc;
-        }, {});
-    };
+// Group rows by "Sala da aula" and "Dia"
+const groupBy = (data, keyFn) => {
+    return data.reduce((acc, row) => {
+        const key = keyFn(row);
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(row);
+        return acc;
+    }, {});
+};
 
-    const groupedData = groupBy(validData, row => row._key);
+const groupedData = groupBy(validData, row => row._key);
 
-    const overlaps = [];
-    const addedRows = new Set(); // Ensure no duplicate rows are added
+const overlaps = [];
+const addedRows = new Set(); // Ensure no duplicate rows are added
 
-    // Check for overlaps within each group
-    Object.values(groupedData).forEach(group => {
-        // Sort by start time for efficient comparison
-        group.sort((a, b) => a._start - b._start);
+// Check for overlaps within each group
+Object.values(groupedData).forEach(group => {
+    // Sort by start time for efficient comparison
+    group.sort((a, b) => a._start - b._start);
 
-        for (let i = 0; i < group.length; i++) {
-            const rowA = group[i];
-            const startA = rowA._start;
-            const endA = rowA._end;
+    for (let i = 0; i < group.length; i++) {
+        const rowA = group[i];
+        const startA = rowA._start;
+        const endA = rowA._end;
 
-            for (let j = i + 1; j < group.length; j++) {
-                const rowB = group[j];
-                const startB = rowB._start;
+        for (let j = i + 1; j < group.length; j++) {
+            const rowB = group[j];
+            const startB = rowB._start;
+            const endB = rowB._end;
 
-                // Stop checking if no more overlaps are possible
-                if (startB >= endA) break;
+            // Stop checking if no more overlaps are possible
+            if (startB >= endA) break;
 
-                const endB = rowB._end;
-
-                // Check if rows overlap
-                if ((startA < endB && startA >= startB) || (startB < endA && startB >= startA)) {
-                    if (!addedRows.has(rowA)) {
-                        overlaps.push(rowA);
-                        addedRows.add(rowA);
-                        overlapClasses++;
-                    }
-                    if (!addedRows.has(rowB)) {
-                        overlaps.push(rowB);
-                        addedRows.add(rowB);
-                        overlapClasses++;
-                    }
+            // Check if rows overlap
+            if ((startA < endB && startA >= startB) || (startB < endA && startB >= startA)) {
+                if (!addedRows.has(rowA)) {
+                    overlaps.push(rowA);
+                    addedRows.add(rowA);
+                    overlapClasses++;
+                }
+                if (!addedRows.has(rowB)) {
+                    overlaps.push(rowB);
+                    addedRows.add(rowB);
+                    overlapClasses++;
                 }
             }
         }
-    });
+    }
+});
 
-    // Update the table to display only overlapping rows
-    scheduleTable.setData(overlaps);
+// Now apply the filter correctly using setFilter
+scheduleTable.setFilter((row) => {
+    // Ensure _start and _end are part of the row for comparison
+    const rowStart = parseTime(row["Início"]);
+    const rowEnd = parseTime(row["Fim"]);
+    const rowKey = `${row["Sala da aula"].trim()}_${row["Dia"].trim()}`;
+
+    return overlaps.some(overlapRow => {
+        // Only check for overlaps for rows in the same room and day
+        if (overlapRow._key === rowKey) {
+            return (
+                // Check if time overlaps
+                (rowStart < overlapRow._end && rowStart >= overlapRow._start) ||
+                (overlapRow._start < rowEnd && overlapRow._start >= rowStart)
+            );
+        }
+        return false;
+    });
+});
+
 
     const overlapPercentage = totalClasses > 0 ? ((overlapClasses / totalClasses) * 100).toFixed(2) : 0;
 
@@ -481,12 +498,11 @@ document.getElementById("overlapFilterButton").addEventListener("click", functio
             // Create the metric display element if it doesn't exist
             metricDisplay = document.createElement("div");
             metricDisplay.id = "overcrowdedMetrics";
-            metricDisplay.style.marginTop = "10px"; // Add some spacing
-            metricDisplay.style.fontWeight = "bold"; // Make the text bold
+            metricDisplay.style.marginTop = "10px";
+            metricDisplay.style.fontWeight = "bold";
             document.getElementById("overcrowdedFilterButton").insertAdjacentElement("afterend", metricDisplay);
         }
 
-        // Update the metric display content
         metricDisplay.innerHTML = `
             <p>Total de aulas: ${totalClasses}</p>
             <p>Aulas sobrepostas: ${overlapClasses}</p>
@@ -504,7 +520,7 @@ document.getElementById("overlapFilterButton").addEventListener("click", functio
 });
 
 function calculateOvercrowdedMetrics() {
-    // Get the table data
+
     const scheduleData = scheduleTable.getData();
 
     let totalClasses = scheduleData.length;
@@ -514,7 +530,6 @@ function calculateOvercrowdedMetrics() {
         throw new Error("No data available. Please upload a CSV first.");
     }
 
-    // Check for required columns
     const hasRequiredColumns = scheduleData.some(row =>
         "Inscritos no turno" in row &&
         "Lotação" in row &&
@@ -525,14 +540,13 @@ function calculateOvercrowdedMetrics() {
         throw new Error("Missing required columns ('Inscritos no turno' and 'Lotação').");
     }
 
-    // Process the data to calculate metrics
     scheduleData.forEach(row => {
-        const inscritos = parseFloat(row["Inscritos no turno"]) || 0; // Convert to number or default to 0
-        const vagas = parseFloat(row["Lotação"]) || 0; // Convert to number or default to 0
-        const contexto = row["Características da sala pedida para a aula"] ? row["Características da sala pedida para a aula"].toLowerCase().trim() : ""; // Trim and lowercase
-        const sala = row["Sala da aula"] ? row["Sala da aula"].trim() : ""; // Trim
+        const inscritos = parseFloat(row["Inscritos no turno"]) || 0;
+        const vagas = parseFloat(row["Lotação"]) || 0;
+        const contexto = row["Características da sala pedida para a aula"] ? row["Características da sala pedida para a aula"].toLowerCase().trim() : "";
+        const sala = row["Sala da aula"] ? row["Sala da aula"].trim() : "";
 
-        const textoExcluido = "Não necessita de sala".toLowerCase(); // Text to exclude
+        const textoExcluido = "Não necessita de sala".toLowerCase();
 
         if (inscritos > vagas && contexto !== textoExcluido && sala !== "") {
             overcrowdedClasses++;
@@ -541,12 +555,10 @@ function calculateOvercrowdedMetrics() {
 
     const overcrowdedPercentage = totalClasses > 0 ? ((overcrowdedClasses / totalClasses) * 100) : 0;
 
-    // Return the metrics as an object
     return overcrowdedPercentage
 }
 
 function calculateOverlapMetrics() {
-    // Get the data from the schedule table
 
     const scheduleData = scheduleTable.getData();
 
@@ -557,7 +569,6 @@ function calculateOverlapMetrics() {
         throw new Error("No data available. Please upload a CSV first.");
     }
 
-    // Check for required columns
     const hasRequiredColumns = scheduleData.some(row =>
         "Início" in row &&
         "Fim" in row &&
@@ -568,7 +579,6 @@ function calculateOverlapMetrics() {
         throw new Error("Missing required columns ('Início', 'Fim', 'Sala da aula', 'Dia').");
     }
 
-    // Filter out rows with empty "Sala da aula"
     const validData = scheduleData.filter(row => row["Sala da aula"] && row["Sala da aula"].trim() !== "");
 
     if (!validData.length) {
