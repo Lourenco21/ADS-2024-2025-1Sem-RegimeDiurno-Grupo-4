@@ -41,7 +41,6 @@ function getMatchingRooms(rowData) {
         );
         const meetsCapacity = roomCapacity >= requiredCapacity;
         // Check room availability
-        console.log(scheduleTable.getData().length)
         const isRoomAvailable = !scheduleTable.getData().some(scheduleRow => {
             const scheduledRoom = scheduleRow["Sala da aula"];
             const scheduledDate = scheduleRow["Dia"];
@@ -143,6 +142,7 @@ document.getElementById("scheduleFileInput").addEventListener("change", function
                 initialOverlapMetrics = calculateOverlapMetrics();
                 initialNoRoomMetrics = calculateNoRoomMetrics();
                 initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
+                console.log(initialTimeRegulationMetrics)
                 initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
             },
             error: function (error) {
@@ -287,11 +287,13 @@ document.getElementById("overcrowdedFilterButton").addEventListener("click", fun
 
     resetFiltersAndMetrics();
 
-    let totalClasses = 0;
+    // Check if the table has data
+
+    const scheduleData = scheduleTable.getData();
+
+    let totalClasses = scheduleData.length;
     let overcrowdedClasses = 0;
 
-    // Check if the table has data
-    const scheduleData = scheduleTable.getData();
     if (!scheduleData.length) {
         alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
         return;
@@ -317,7 +319,6 @@ document.getElementById("overcrowdedFilterButton").addEventListener("click", fun
         const sala = row["Sala da aula"] ? row["Sala da aula"].trim() : "";
         const textoExcluido = "Não necessita de sala".toLowerCase();
 
-        totalClasses++;
         if (inscritos > vagas && contexto !== textoExcluido && sala !== "") {
             overcrowdedClasses++;
             return true; // Show this row
@@ -349,7 +350,7 @@ document.getElementById("overcrowdedFilterButton").addEventListener("click", fun
 
         metricDisplay.style.display = "block";
 
-        initialOvercrowdMetrics = calculateOvercrowdedMetrics();
+        initialOvercrowdMetrics = totalClasses > 0 ? ((overcrowdedClasses / totalClasses) * 100) : 0;
         initialOverlapMetrics = calculateOverlapMetrics();
         initialNoRoomMetrics = calculateNoRoomMetrics();
         initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
@@ -364,11 +365,15 @@ document.getElementById("overlapFilterButton").addEventListener("click", functio
 
     // Check if the table has data
     const scheduleData = scheduleTable.getData();
+
+    let totalClasses = scheduleData.length;
+    let overlapClasses = 0;
+
     if (!scheduleData.length) {
         alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
         return;
-    }
 
+    }
     // Check if required columns exist
     const hasRequiredColumns = scheduleData.some(row =>
         "Início" in row &&
@@ -379,10 +384,8 @@ document.getElementById("overlapFilterButton").addEventListener("click", functio
     if (!hasRequiredColumns) {
         alert("O ficheiro CSV não contém as colunas necessárias ('Início', 'Fim', 'Sala da aula', 'Dia').");
         return;
-    }
 
-    let totalClasses = scheduleData.length;
-    let overlapClasses = 0;
+    }
 
     // Convert time to minutes
     const parseTime = (timeStr) => {
@@ -469,7 +472,7 @@ document.getElementById("overlapFilterButton").addEventListener("click", functio
         metricDisplay.style.display = "block";
 
         initialOvercrowdMetrics = calculateOvercrowdedMetrics();
-        initialOverlapMetrics = calculateOverlapMetrics();
+        initialOverlapMetrics = totalClasses > 0 ? ((overlapClasses / totalClasses) * 100) : 0;
         initialNoRoomMetrics = calculateNoRoomMetrics();
         initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
         initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
@@ -477,11 +480,12 @@ document.getElementById("overlapFilterButton").addEventListener("click", functio
 });
 
 function calculateOvercrowdedMetrics() {
-    let totalClasses = 0;
-    let overcrowdedClasses = 0;
-
     // Get the table data
     const scheduleData = scheduleTable.getData();
+
+    let totalClasses = scheduleData.length;
+    let overcrowdedClasses = 0;
+
     if (!scheduleData.length) {
         throw new Error("No data available. Please upload a CSV first.");
     }
@@ -506,7 +510,6 @@ function calculateOvercrowdedMetrics() {
 
         const textoExcluido = "Não necessita de sala".toLowerCase(); // Text to exclude
 
-        totalClasses++;
         if (inscritos > vagas && contexto !== textoExcluido && sala !== "") {
             overcrowdedClasses++;
         }
@@ -519,11 +522,13 @@ function calculateOvercrowdedMetrics() {
 }
 
 function calculateOverlapMetrics() {
-    let totalClasses = 0;
+    // Get the data from the schedule table
+
+    const scheduleData = scheduleTable.getData();
+
+    let totalClasses = scheduleData.length;
     let overlapClasses = 0;
 
-    // Get the data from the schedule table
-    const scheduleData = scheduleTable.getData();
     if (!scheduleData.length) {
         throw new Error("No data available. Please upload a CSV first.");
     }
@@ -607,7 +612,6 @@ function calculateOverlapMetrics() {
         }
     });
 
-    totalClasses = scheduleData.length;
     const overlapPercentage = totalClasses > 0 ? ((overlapClasses / totalClasses) * 100) : 0;
 
     // Return the metrics as an object
@@ -634,6 +638,7 @@ function showMetricBalance(initialOvercrowd, updatedOvercrowd, initialOverlap, u
 
     // Calculate the differences
     const overcrowdedPercentageDiff = (updatedOvercrowd - initialOvercrowd);
+    console.log(updatedOvercrowd + " " + initialOvercrowd)
     const overlapPercentageDiff = (updatedOverlap - initialOverlap);
     const noRoomPercentageDiff = (updatedNoRoom - initialNoRoom);
     const failRegulationPercentageDiff = (updatedFailRegulation - initialFailRegulation);
@@ -692,6 +697,7 @@ function resetFiltersAndMetrics() {
     initialOverlapMetrics = calculateOverlapMetrics();
     initialNoRoomMetrics = calculateNoRoomMetrics();
     initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
+    console.log(initialTimeRegulationMetrics)
     initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
 
 }
@@ -703,18 +709,14 @@ scheduleTable.on("cellDblClick", function(e, cell) {
        cell.edit(); // Allow editing if not in the non-editable list
 });
 
-// Recalculate metrics on cell edit
-/*scheduleTable.on("cellEdited", function (cell) {
-    updateMetrics();
-});*/
 
-function updateMetrics(){
+
+/*function updateMetrics(){
     const updatedOvercrowdedMetrics = calculateOvercrowdedMetrics();
     const updatedOverlapMetrics = calculateOverlapMetrics();
     const updatedNoRoomMetrics = calculateNoRoomMetrics();
     const updatedTimeRegulationMetrics = calculateTimeRegulationMetrics();
     const updatedWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
-
 
     if (initialOvercrowdMetrics !== undefined && initialOverlapMetrics !== undefined && initialNoRoomMetrics !== undefined && initialTimeRegulationMetrics !== undefined && initialWrongCharacteristicsMetrics !== undefined) {
         showMetricBalance(initialOvercrowdMetrics, updatedOvercrowdedMetrics, initialOverlapMetrics, updatedOverlapMetrics, initialNoRoomMetrics, updatedNoRoomMetrics, initialTimeRegulationMetrics, updatedTimeRegulationMetrics, initialWrongCharacteristicsMetrics, updatedWrongCharacteristicsMetrics);
@@ -726,7 +728,7 @@ function updateMetrics(){
     initialNoRoomMetrics = updatedNoRoomMetrics;
     initialTimeRegulationMetrics = updatedTimeRegulationMetrics;
     initialWrongCharacteristicsMetrics = updatedWrongCharacteristicsMetrics;
-}
+}*/
 
 
 // Save modified data to a new file with a user-specified name
@@ -764,7 +766,7 @@ document.getElementById("classWithoutRoomButton").addEventListener("click", func
 
     const scheduleData = scheduleTable.getData();
 
-    let totalClasses = 0;
+    let totalClasses = scheduleData.length;
     let classesWithoutRoom = 0;
 
     if (!scheduleData.length) {
@@ -783,7 +785,6 @@ document.getElementById("classWithoutRoomButton").addEventListener("click", func
     const textoExcluido = "Não necessita de sala".toLowerCase();
 
     scheduleTable.setFilter(row => {
-        totalClasses++; // Increment the total classes count
 
         const contexto = row["Características da sala pedida para a aula"]
             ? row["Características da sala pedida para a aula"].toLowerCase().trim()
@@ -823,7 +824,7 @@ document.getElementById("classWithoutRoomButton").addEventListener("click", func
 
     initialOvercrowdMetrics = calculateOvercrowdedMetrics();
     initialOverlapMetrics = calculateOverlapMetrics();
-    initialNoRoomMetrics = calculateNoRoomMetrics();
+    initialNoRoomMetrics = totalClasses > 0 ? ((classesWithoutRoom / totalClasses) * 100) : 0;
     initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
     initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
 
@@ -832,11 +833,12 @@ document.getElementById("classWithoutRoomButton").addEventListener("click", func
 document.getElementById("timeRegulationsButton").addEventListener("click", function () {
     resetFiltersAndMetrics();
 
-    let totalClasses = 0;
-    let filteredClasses = 0;
-
     // Get the schedule table data
+
     const scheduleData = scheduleTable.getData();
+
+    let totalClasses = scheduleData.length;
+    let filteredClasses = 0;
 
     if (!scheduleData.length) {
         alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
@@ -862,7 +864,6 @@ document.getElementById("timeRegulationsButton").addEventListener("click", funct
 
     // Apply filter to display only rows that don't meet time regulations
     scheduleTable.setFilter(row => {
-        totalClasses++; // Increment total classes
 
         const contexto = row["Características da sala pedida para a aula"]
             ? row["Características da sala pedida para a aula"].toLowerCase().trim()
@@ -908,7 +909,7 @@ document.getElementById("timeRegulationsButton").addEventListener("click", funct
     initialOvercrowdMetrics = calculateOvercrowdedMetrics();
     initialOverlapMetrics = calculateOverlapMetrics();
     initialNoRoomMetrics = calculateNoRoomMetrics();
-    initialTimeRegulationMetrics = calculateOverlapMetrics();
+    initialTimeRegulationMetrics = totalClasses > 0 ? ((filteredClasses / totalClasses) * 100) : 0;
     initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
 });
 
@@ -919,6 +920,7 @@ document.getElementById("matchingCharacteristicsButton").addEventListener("click
     // Get the schedule data
     const scheduleData = scheduleTable.getData();
     let totalClasses = scheduleData.length;
+    let filteredClasses = 0;
 
     if (!scheduleData.length) {
         alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
@@ -946,11 +948,13 @@ document.getElementById("matchingCharacteristicsButton").addEventListener("click
         const matches = requestedFeatures.some(requestedFeature =>
             actualFeatures.some(actualFeature => actualFeature.toLowerCase().includes(requestedFeature.trim()))
         );
+        if(!matches)
+            filteredClasses++;
 
         return !matches;
     });
 
-    const wrongCharacteristicsPercentage = totalClasses > 0 ? ((filteredData.length / totalClasses) * 100).toFixed(2) : 0;
+    const wrongCharacteristicsPercentage = totalClasses > 0 ? ((filteredClasses / totalClasses) * 100).toFixed(2) : 0;
 
     let metricDisplay = document.getElementById("characteristicsMetrics");
         if (!metricDisplay) {
@@ -965,7 +969,7 @@ document.getElementById("matchingCharacteristicsButton").addEventListener("click
 
         metricDisplay.innerHTML = `
             <p>Total de aulas: ${totalClasses}</p>
-            <p>Aulas que não cumprem regulamentos: ${filteredData.length}</p>
+            <p>Aulas que não cumprem regulamentos: ${filteredClasses}</p>
             <p>Percentagem de superlotação: ${wrongCharacteristicsPercentage}%</p>
         `;
 
@@ -975,17 +979,18 @@ document.getElementById("matchingCharacteristicsButton").addEventListener("click
         initialOverlapMetrics = calculateOverlapMetrics();
         initialNoRoomMetrics = calculateNoRoomMetrics();
         initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
-        initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
+        initialWrongCharacteristicsMetrics = totalClasses > 0 ? ((filteredClasses / totalClasses) * 100) : 0;
 
 });
 
 function calculateMatchingCharacteristicsMetrics(){
 
-    let totalClasses = 0;
-    let classesWithoutMatchingCharacteristics = 0;
-
     // Get the schedule data
+
     const scheduleData = scheduleTable.getData();
+
+    let totalClasses = scheduleData.length;
+    let classesWithoutMatchingCharacteristics = 0;
 
     if (!scheduleData.length) {
         alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
@@ -994,7 +999,6 @@ function calculateMatchingCharacteristicsMetrics(){
 
     // Function to compare features and return rows with non-matching features
     const filteredData = scheduleData.filter(row => {
-        totalClasses++;
         let requestedFeatures = row["Características da sala pedida para a aula"]
             ? row["Características da sala pedida para a aula"].toLowerCase().trim().split(",")
             : [];
@@ -1007,7 +1011,6 @@ function calculateMatchingCharacteristicsMetrics(){
         // Special case for "Sala/anfiteatro aulas"
         if (row["Características da sala pedida para a aula"].toLowerCase().trim() === "sala/anfiteatro aulas") {
             requestedFeatures.push("sala de aulas normal", "anfiteatro aulas");
-            classesWithoutMatchingCharacteristics++;
         }
 
         const actualFeatures = row["Características reais da sala"]
@@ -1019,22 +1022,22 @@ function calculateMatchingCharacteristicsMetrics(){
             actualFeatures.some(actualFeature => actualFeature.toLowerCase().includes(requestedFeature.trim()))
         );
 
-        // If no match is found, include the row
+        if(!matches)
+            classesWithoutMatchingCharacteristics++;
+        
         return !matches;
     });
 
-    const wrongCharacteristicsPercentage = totalClasses > 0 ? ((classesWithoutMatchingCharacteristics / totalClasses) * 100).toFixed(2) : 0;
+    const wrongCharacteristicsPercentage = totalClasses > 0 ? ((classesWithoutMatchingCharacteristics / totalClasses) * 100) : 0;
 
     return wrongCharacteristicsPercentage;
 }
 
 function calculateNoRoomMetrics(){
-
-    let totalClasses = 0;
-    let classesWithoutRoom = 0;
-
-    // Obter os dados da tabela de horários
     const scheduleData = scheduleTable.getData();
+
+    let totalClasses = scheduleData.length;
+    let classesWithoutRoom = 0;
 
     if (!scheduleData.length) {
         alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
@@ -1051,7 +1054,6 @@ function calculateNoRoomMetrics(){
     // Filtrar os dados manualmente
     const filteredData = scheduleData.filter(row => {
         const contexto = row["Características da sala pedida para a aula"] ? row["Características da sala pedida para a aula"].toLowerCase().trim() : "";
-        totalClasses++; // Incrementar o total de aulas
 
         const textoExcluido = "Não necessita de sala".toLowerCase();
         if ((!row["Sala da aula"] || row["Sala da aula"].trim() === "") && contexto !== textoExcluido) {
@@ -1059,7 +1061,7 @@ function calculateNoRoomMetrics(){
         }
     });
 
-    const overcrowdedPercentage = totalClasses > 0 ? ((classesWithoutRoom / totalClasses) * 100).toFixed(2) : 0;
+    const overcrowdedPercentage = totalClasses > 0 ? ((classesWithoutRoom / totalClasses) * 100) : 0;
 
     return overcrowdedPercentage;
 
@@ -1067,11 +1069,12 @@ function calculateNoRoomMetrics(){
 
 function calculateTimeRegulationMetrics(){
 
-    let totalClasses = 0;
-    let filteredClasses = 0;
-
     // Obter os dados da tabela de horários
+
     const scheduleData = scheduleTable.getData();
+
+    let totalClasses = scheduleData.length;
+    let filteredClasses = 0;
 
     if (!scheduleData.length) {
         alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
@@ -1099,7 +1102,6 @@ function calculateTimeRegulationMetrics(){
         const start = parseTime(row["Início"]);
         const end = parseTime(row["Fim"]);
         const contexto = row["Características da sala pedida para a aula"] ? row["Características da sala pedida para a aula"].toLowerCase().trim() : "";
-        totalClasses++; // Incrementar o total de aulas
 
         const textoExcluido = "Não necessita de sala".toLowerCase();
         // Verificar se a aula não está dentro do horário permitido e tem mais de 3 horas de duração
@@ -1112,8 +1114,11 @@ function calculateTimeRegulationMetrics(){
         }
     });
 
-    const overcrowdedPercentage = totalClasses > 0 ? ((filteredClasses / totalClasses) * 100).toFixed(2) : 0;
+    console.log(filteredClasses)
+    console.log(totalClasses)
+    const overcrowdedPercentage = totalClasses > 0 ? ((filteredClasses / totalClasses) * 100) : 0;
 
+    console.log(overcrowdedPercentage)
     return overcrowdedPercentage;
 
 }
@@ -1222,7 +1227,25 @@ scheduleTable.on("cellEdited", function (cell) {
             });
         }
     }
-    updateMetrics();
+    const updatedOvercrowdedMetrics = calculateOvercrowdedMetrics();
+    const updatedOverlapMetrics = calculateOverlapMetrics();
+    const updatedNoRoomMetrics = calculateNoRoomMetrics();
+    const updatedTimeRegulationMetrics = calculateTimeRegulationMetrics();
+    const updatedWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
+
+    if (initialOvercrowdMetrics !== undefined && initialOverlapMetrics !== undefined && initialNoRoomMetrics !== undefined && initialTimeRegulationMetrics !== undefined && initialWrongCharacteristicsMetrics !== undefined) {
+        showMetricBalance(initialOvercrowdMetrics, updatedOvercrowdedMetrics, initialOverlapMetrics, updatedOverlapMetrics, initialNoRoomMetrics, updatedNoRoomMetrics, initialTimeRegulationMetrics, updatedTimeRegulationMetrics, initialWrongCharacteristicsMetrics, updatedWrongCharacteristicsMetrics);
+    } else {
+        console.error("Initial metrics are not set.");
+    }
+
+    initialOvercrowdMetrics = updatedOvercrowdedMetrics;
+    initialOverlapMetrics = updatedOverlapMetrics;
+    initialNoRoomMetrics = updatedNoRoomMetrics;
+    initialTimeRegulationMetrics = updatedTimeRegulationMetrics;
+    console.log(initialTimeRegulationMetrics)
+    initialWrongCharacteristicsMetrics = updatedWrongCharacteristicsMetrics;
+    //updateMetrics();
 });
 
 function updateScheduleWithRoomCharacteristics() {
