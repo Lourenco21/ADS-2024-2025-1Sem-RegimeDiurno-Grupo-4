@@ -1,3 +1,24 @@
+const toggleButton = document.getElementById('toggleButton');
+const characteristicsTableHide = document.getElementById('characteristics-table');
+const characteristicsH2Hide = document.getElementById('characteristics-h2');
+
+toggleButton.addEventListener('click', () => {
+    if(characteristicsTable.getData().length === 0){
+        alert("Nenhum ficheiro de características selecionado.")
+    }else {
+        if (characteristicsTableHide.style.display === 'none' || characteristicsTableHide.style.display === '') {
+            characteristicsTableHide.style.display = 'block'; // Show the table
+            toggleButton.textContent = 'Esconder tabela de características';
+            characteristicsH2Hide.style.display = 'block';
+        } else {
+            characteristicsTableHide.style.display = 'none'; // Hide the table
+            toggleButton.textContent = 'Mostrar tabela de características';
+            characteristicsH2Hide.style.display = 'none';
+        }
+    }
+
+});
+
 function getMatchingRooms(rowData) {
     if(characteristicsTable.getData().length === 0)
         alert("Selecione um ficheiro de Características de Salas de Aula")
