@@ -12,14 +12,14 @@
 
 </head>
 <body>
-<h1>Select the CSV Files</h1>
+<h1>Escolha os Ficheiros CSV</h1>
 
 <div class="button-container">
-    <label class="custom-file-input" for="scheduleFileInput">Choose the schedule</label>
+    <label class="custom-file-input" for="scheduleFileInput">Horário</label>
     <input type="file" id="scheduleFileInput" accept=".csv"/>
 
 
-    <label class="custom-file-input" for="characteristicsFileInput">Choose the room characteristics</label>
+    <label class="custom-file-input" for="characteristicsFileInput">Características das salas</label>
     <input type="file" id="characteristicsFileInput" accept=".csv"/>
 
 </div>
@@ -31,47 +31,41 @@
 
 
 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; width: 90%; margin: auto;">
-    <!-- Schedule Table Section -->
+
     <div id="schedule-container" style="flex: 3; min-width: 60%;">
-        <h2>Schedule Table</h2>
+        <h2>Horário</h2>
         <div id="schedule-table"></div>
         <br>
 
         <br>
     </div>
 
-    <!-- Filters Section -->
     <div id="filters-container" style="flex: 1; min-width: 250px;">
-        <h2 style="text-align: center;">Filters</h2>
+        <h2 style="text-align: center;">Filtros</h2>
         <div style="display: flex; flex-direction: column; gap: 20px;">
 
-            <!-- Overcrowded Filter -->
             <div style="text-align: center;">
-                <button id="overcrowdedFilterButton" class="custom-file-input">Filtrar aulas em sobrelotação</button>
+                <button id="overcrowdedFilterButton" class="custom-file-input">Aulas em sobrelotação</button>
                 <div id="overcrowdedMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
             </div>
 
-            <!-- Overlap Filter -->
             <div style="text-align: center;">
-                <button id="overlapFilterButton" class="custom-file-input">Filtrar sobreposição de aulas</button>
+                <button id="overlapFilterButton" class="custom-file-input">Aulas em sobreposição</button>
                 <div id="overlapMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
             </div>
 
-            <!-- Class Without Room Filter -->
             <div style="text-align: center;">
-                <button id="classWithoutRoomButton" class="custom-file-input">Filtrar aulas sem sala</button>
+                <button id="classWithoutRoomButton" class="custom-file-input">Aulas sem sala</button>
                 <div id="withoutRoomMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
             </div>
 
-            <!-- Time Regulations Filter -->
             <div style="text-align: center;">
-                <button id="timeRegulationsButton" class="custom-file-input">Filtrar aulas contra regulação dos horários</button>
+                <button id="timeRegulationsButton" class="custom-file-input">Aulas contra regulação dos horários</button>
                 <div id="timeRegulationsMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
             </div>
 
-            <!-- Matching Characteristics Filter -->
             <div style="text-align: center;">
-                <button id="matchingCharacteristicsButton" class="custom-file-input">Filtrar aulas sem características certas</button>
+                <button id="matchingCharacteristicsButton" class="custom-file-input">Aulas sem características certas</button>
                 <div id="characteristicsMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
             </div>
             <div style="text-align: center;">
@@ -91,7 +85,7 @@
 <br>
 <br>
 
-<h2 id="characteristics-h2" style="display: none">Characteristics table</h2>
+<h2 id="characteristics-h2" style="display: none">Características das Salas</h2>
 <div id="characteristics-table">
 </div>
 
