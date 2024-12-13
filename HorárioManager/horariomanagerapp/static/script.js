@@ -108,7 +108,7 @@ var scheduleTable = new Tabulator("#schedule-table", {
     paginationSizeSelector: [5, 10, 20, 30, 50, 100],
     movableColumns: true,
     paginationCounter: "rows",
-    placeholder: "Awaiting Data, Please Load File",
+    placeholder: "À espera de dados, por favor carregue um ficheiro",
     tooltips: true,
     cellEdited: function(cell) {
         // Recalculate metrics after any cell edit
@@ -136,7 +136,7 @@ var characteristicsTable = new Tabulator("#characteristics-table", {
     paginationSizeSelector: [5, 10, 20, 30, 50, 100],
     movableColumns: true,
     paginationCounter: "rows",
-    placeholder: "Awaiting Data, Please Load File",
+    placeholder: "À espera de dados, por favor carregue um ficheiro",
     tooltips: true,
 });
 
@@ -154,14 +154,14 @@ document.getElementById("scheduleFileInput").addEventListener("change", function
     const file = event.target.files[0];
 
     if (file) {
-        document.getElementById("scheduleFileName").textContent = `Schedule file loaded: ${file.name}`;
+        document.getElementById("scheduleFileName").textContent = `Horário escolhido: ${file.name}`;
 
         Papa.parse(file, {
             header: true,
             skipEmptyLines: true,
             complete: function (results) {
                 if (results.data.length === 0) {
-                    alert("The CSV file is empty or has invalid content.");
+                    alert("Ficheiro CSV inválido.");
                     return;
                 }
 
@@ -180,11 +180,11 @@ document.getElementById("scheduleFileInput").addEventListener("change", function
                 initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
             },
             error: function (error) {
-                alert("There was an error parsing the schedule CSV file.");
+                alert("Houve um erro a ler o ficheiro.");
             },
         });
     } else {
-        alert("No file selected!");
+        alert("Nenhum ficheiro selecionado!");
     }
     checkIfFilesLoaded();
 });
@@ -194,7 +194,7 @@ document.getElementById("characteristicsFileInput").addEventListener("change", f
     const file = event.target.files[0];
 
     if (file) {
-        document.getElementById("characteristicsFileName").textContent = `Characteristics file loaded: ${file.name}`;
+        document.getElementById("characteristicsFileName").textContent = `Características das salas escolhidas: ${file.name}`;
 
         Papa.parse(file, {
             header: true,
@@ -202,7 +202,7 @@ document.getElementById("characteristicsFileInput").addEventListener("change", f
             complete: function (results) {
 
                 if (results.data.length === 0) {
-                    alert("The CSV file is empty or has invalid content.");
+                    alert("Ficheiro CSV inválido.");
                     return;
                 }
 
@@ -211,11 +211,11 @@ document.getElementById("characteristicsFileInput").addEventListener("change", f
                 characteristicsTable.setData(results.data);
             },
             error: function (error) {
-                alert("There was an error parsing the characteristics CSV file.");
+                alert("Houve um erro a ler o ficheiro.");
             },
         });
     } else {
-        alert("No file selected!");
+        alert("Nenhum ficheiro selecionado!");
     }
     checkIfFilesLoaded();
 });
@@ -787,14 +787,14 @@ document.getElementById("saveChangesButton").addEventListener("click", function 
     const modifiedData = scheduleTable.getData(); // Get the current table data
 
     if (modifiedData.length === 0) {
-        alert("No data available to save!");
+        alert("Não há um ficheiro para guardar!");
         return;
     }
 
     const fileName = prompt("Enter a name for the file (without extension):", "schedule_data");
 
     if (!fileName) {
-        alert("File name is required!");
+        alert("Nome do ficheiro é necessário!");
         return;
     }
 
@@ -1222,7 +1222,7 @@ scheduleTable.on("cellEdited", function (cell) {
                     });
                 } else {
 
-                    alert("Não há opções de Sala. Ira ficar com a sala atual.");
+                    alert("Não há opções de Sala. Irá ficar com a sala atual.");
                     cell.setValue(originalValue);
                 }
             }
