@@ -673,16 +673,32 @@ function calculateOverlapMetrics() {
     return overlapPercentage
 }
 
+function showMetricsPopup() {
+    const popup = document.getElementById('metricBalancePopup');
+    if (!popup) return; // Ensure popup exists
+
+    // Add the "show" class to make it visible
+    popup.classList.add('show');
+
+}
+
+function closePopup() {
+    const popup = document.getElementById('metricBalancePopup');
+    if (popup) {
+        popup.classList.remove('show'); // Hide the popup
+    }
+}
+
 
 function showMetricBalance(initialOvercrowd, updatedOvercrowd, initialOverlap, updatedOverlap, initialNoRoom, updatedNoRoom, initialFailRegulation, updatedFailRegulation, initialWrongCharacteristics, updatedWrongCharacteristics) {
     let balanceDisplay = document.getElementById("metricBalance");
 
     if (!balanceDisplay) {
         balanceDisplay = document.createElement("div");
-        balanceDisplay.id = "metricBalance";
-        balanceDisplay.style.marginTop = "10px";  // Add some spacing
-        balanceDisplay.style.fontWeight = "bold"; // Make the text bold
-        document.body.appendChild(balanceDisplay);  // Append it to the body or any other parent element
+        balanceDisplay.id = "metricBalancePopup";
+        balanceDisplay.className = "popup-metrics";
+        document.body.appendChild(balanceDisplay);
+
     }
 
     let overcrowdedResult = "No Quality change";
@@ -731,9 +747,10 @@ function showMetricBalance(initialOvercrowd, updatedOvercrowd, initialOverlap, u
         <p>Without room Result: ${noRoomResult}</p>
         <p>Time Regulation Fail Result: ${failRegulationResult}</p>
         <p>Wrong Characteristics Result: ${wrongCharacteristicsResult}</p>
+        <button onclick="closePopup()">&times;</button>
     `;
+    showMetricsPopup();
 
-    balanceDisplay.style.display = "block";
 }
 
 function resetFiltersAndMetrics() {
@@ -1236,7 +1253,6 @@ scheduleTable.on("cellEdited", function (cell) {
     initialTimeRegulationMetrics = updatedTimeRegulationMetrics;
     console.log(initialTimeRegulationMetrics)
     initialWrongCharacteristicsMetrics = updatedWrongCharacteristicsMetrics;
-    //updateMetrics();
 });
 
 function updateScheduleWithRoomCharacteristics() {

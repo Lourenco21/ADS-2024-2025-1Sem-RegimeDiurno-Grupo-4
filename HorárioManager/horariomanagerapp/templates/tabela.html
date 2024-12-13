@@ -30,62 +30,76 @@
 <p id="characteristicsFileName"></p>
 
 
-<h2>Schedule table</h2>
-<div id="schedule-table"></div>
-<br>
-<div id="metricBalance" style="margin-top: 10px; font-weight: bold;"></div>
-<br>
-<button id="saveChangesButton" class="custom-file-input">Guardar alterações num ficheiro novo</button>
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; width: 90%; margin: auto;">
+    <!-- Schedule Table Section -->
+    <div id="schedule-container" style="flex: 3; min-width: 60%;">
+        <h2>Schedule Table</h2>
+        <div id="schedule-table"></div>
+        <br>
+
+        <br>
+    </div>
+
+    <!-- Filters Section -->
+    <div id="filters-container" style="flex: 1; min-width: 250px;">
+        <h2 style="text-align: center;">Filters</h2>
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+
+            <!-- Overcrowded Filter -->
+            <div style="text-align: center;">
+                <button id="overcrowdedFilterButton" class="custom-file-input">Filtrar aulas em sobrelotação</button>
+                <div id="overcrowdedMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
+            </div>
+
+            <!-- Overlap Filter -->
+            <div style="text-align: center;">
+                <button id="overlapFilterButton" class="custom-file-input">Filtrar sobreposição de aulas</button>
+                <div id="overlapMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
+            </div>
+
+            <!-- Class Without Room Filter -->
+            <div style="text-align: center;">
+                <button id="classWithoutRoomButton" class="custom-file-input">Filtrar aulas sem sala</button>
+                <div id="withoutRoomMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
+            </div>
+
+            <!-- Time Regulations Filter -->
+            <div style="text-align: center;">
+                <button id="timeRegulationsButton" class="custom-file-input">Filtrar aulas contra regulação dos horários</button>
+                <div id="timeRegulationsMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
+            </div>
+
+            <!-- Matching Characteristics Filter -->
+            <div style="text-align: center;">
+                <button id="matchingCharacteristicsButton" class="custom-file-input">Filtrar aulas sem características certas</button>
+                <div id="characteristicsMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
+            </div>
+            <div style="text-align: center;">
+                <button id="resetFilterButton" class="custom-file-input">Apagar filtros</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<div style="display: flex; justify-content: space-around; align-items: flex-start; gap: 20px; margin-top: 20px;">
+    <button id="saveChangesButton" class="custom-file-input">Guardar alterações num ficheiro novo</button>
+    <button id="toggleButton" class="custom-file-input">Mostrar tabela de características</button>
+    <button id="updateScheduleCharacteristicsButton" class="custom-file-input">Atualizar Caracteristicas Horário</button>
+</div>
 <br>
 
 
 <h2 id="characteristics-h2" style="display: none">Characteristics table</h2>
-<div id="characteristics-table"></div>
-<br><br>
-<button id="toggleButton" class="custom-file-input">Mostrar tabela de características</button>
-<br><br>
-<button id="updateScheduleCharacteristicsButton" class="custom-file-input">Atualizar Caracteristicas Horário</button>
-
-<br>
-
-<h2>Filters for instances that contribute negatively for the schedule</h2>
-<div style="display: flex; justify-content: space-around; align-items: flex-start; gap: 20px; margin-top: 20px;">
-    <div style="text-align: center;">
-        <button id="overcrowdedFilterButton" class="custom-file-input">Filtrar aulas em sobrelotação</button>
-        <div id="overcrowdedMetrics" style="margin-top: 10px; font-weight: bold;"></div>
-    </div>
-
-    <div style="text-align: center;">
-        <button id="overlapFilterButton" class="custom-file-input">Filtrar sobreposição de aulas</button>
-        <div id="overlapMetrics" style="margin-top: 10px; font-weight: bold;"></div>
-    </div>
-
-    <div style="text-align: center;">
-        <button id="classWithoutRoomButton" class="custom-file-input">Filtrar aulas sem sala</button>
-        <div id="withoutRoomMetrics" style="margin-top: 10px; font-weight: bold;"></div>
-    </div>
-
-    <div style="text-align: center;">
-        <button id="timeRegulationsButton" class="custom-file-input">Filtrar aulas contra regulação dos horários</button>
-        <div id="timeRegulationsMetrics" style="margin-top: 10px; font-weight: bold;"></div>
-    </div>
-
-     <div style="text-align: center;">
-        <button id="matchingCharacteristicsButton" class="custom-file-input">Filtrar aulas sem características certas</button>
-        <div id="characteristicsMetrics" style="margin-top: 10px; font-weight: bold;"></div>
-    </div>
+<div id="characteristics-table">
 </div>
 
-<br><br>
-
-<div style="display: flex; justify-content: space-around; align-items: flex-start; gap: 20px; margin-top: 20px;">
-    <button id="resetFilterButton" class="custom-file-input">Apagar filtros</button>
-
-    <br><br>
-
+<div id="metricBalancePopup" class="popup-metrics">
+    <div id="metricBalance" style="font-weight: bold;"></div>
 </div>
 
-<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+<br><br><br>
 
 <script src="{% static 'script.js' %}"></script>
 

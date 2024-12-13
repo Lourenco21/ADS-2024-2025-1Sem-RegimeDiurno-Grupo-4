@@ -24,7 +24,7 @@ h1 {
 
 .custom-file-input {
     padding: 12px 24px;
-    background-color: #3b6e91;
+    background-color: #636363;
     color: white;
     font-size: 16px;
     cursor: pointer;
@@ -32,11 +32,11 @@ h1 {
     border-radius: 5px;
     display: inline-block;
     transition: background-color 0.3s, transform 0.2s ease-in-out;
-    box-shadow: 0 4px 6px rgba(0, 123, 255, 0.1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .custom-file-input:hover {
-    background-color: #335a74;
+    background-color: #4d4d4d;
 }
 
 .custom-file-input:active {
@@ -53,17 +53,34 @@ h1 {
     color: #555;
 }
 
-#schedule-table {
-    margin-top: 30px;
-    width: 60%;
+/* Filters Container */
+#filters-container div {
+    padding: 10px;
+    background-color: #fff;
     border: 1px solid #ddd;
-    table-layout: fixed;
-    text-align: left;
-    border-radius: 5px;
+    border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    div[style*="display: flex;"] {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #schedule-container, #filters-container {
+        width: 100%;
+    }
+}
+
+ #schedule-table{
+     border-radius: 5px;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     background-color: #fff;
 }
+
 
 #characteristics-table {
     margin-top: 30px;
@@ -115,5 +132,67 @@ h1 {
 
 .tabulator-row:hover {
     background-color: #f1f1f1 !important;
+}
+
+.popup-metrics {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 300px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    padding: 15px;
+    z-index: 1000; /* Ensure it appears on top */
+    opacity: 0; /* Initially invisible */
+    transform: translateY(20px); /* Start slightly out of view */
+    transition: opacity 0.3s ease, transform 0.3s ease; /* Smooth transition */
+}
+
+/* When the "show" class is added */
+.popup-metrics.show {
+    opacity: 1; /* Fully visible */
+    transform: translateY(0); /* Slide into view */
+}
+
+/* Optional: Customize text inside the pop-up */
+.popup-metrics h4 {
+    margin: 0 0 10px;
+    font-size: 18px;
+    text-align: center;
+}
+
+.popup-metrics p {
+    margin: 5px 0;
+    font-size: 14px;
+    color: #333;
+}
+
+.popup-metrics button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #636363;  /* A blue color */
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 16px;  /* Smaller font size */
+    width: 24px;  /* Smaller button size */
+    height: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+/* Hover effect for the button inside .popup-metrics */
+.popup-metrics button:hover {
+    background-color: #4d4d4d;  /* Darker blue on hover */
+}
+
+.popup-metrics button:active {
+    transform: scale(0.95);
 }
 
