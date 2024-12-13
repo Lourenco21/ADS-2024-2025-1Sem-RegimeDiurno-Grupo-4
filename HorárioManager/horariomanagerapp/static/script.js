@@ -93,7 +93,6 @@ function getMatchingRooms(rowData) {
         return hasMatchingFeature && meetsCapacity && isRoomAvailable;
     });
 
-    console.log("Matching rooms for row:", rowData, matchingRooms);
     return matchingRooms.map(room => room["Nome sala"]); // Adjust column name as necessary
     }
 }
@@ -176,7 +175,6 @@ document.getElementById("scheduleFileInput").addEventListener("change", function
                 initialOverlapMetrics = calculateOverlapMetrics();
                 initialNoRoomMetrics = calculateNoRoomMetrics();
                 initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
-                console.log(initialTimeRegulationMetrics)
                 initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
             },
             error: function (error) {
@@ -233,7 +231,6 @@ function checkIfFilesLoaded() {
     }
 }
 
-
 // Dynamically generate columns from data
 function generateColumns(data) {
     return Object.keys(data[0] || {}).map((field, index) => {
@@ -243,7 +240,8 @@ function generateColumns(data) {
             "Turno",
             "Turma",
             "Lotação",
-            "Características reais da sala"
+            "Características reais da sala",
+            "Dia da Semana"
         ];
                 if (field === "Sala da aula") {
                 return {
@@ -264,7 +262,7 @@ function generateColumns(data) {
                             };
                         }
                     };
-}
+                }
         return {
             title: field.charAt(0).toUpperCase() + field.slice(1),
             field: field,
@@ -276,7 +274,6 @@ function generateColumns(data) {
         };
     });
 }
-
 // Define header menu for column visibility toggle with checkboxes
 var headerMenu = function () {
     var menu = [];
@@ -709,7 +706,6 @@ function showMetricBalance(initialOvercrowd, updatedOvercrowd, initialOverlap, u
 
     // Calculate the differences
     const overcrowdedPercentageDiff = (updatedOvercrowd - initialOvercrowd);
-    console.log(updatedOvercrowd + " " + initialOvercrowd)
     const overlapPercentageDiff = (updatedOverlap - initialOverlap);
     const noRoomPercentageDiff = (updatedNoRoom - initialNoRoom);
     const failRegulationPercentageDiff = (updatedFailRegulation - initialFailRegulation);
@@ -769,7 +765,6 @@ function resetFiltersAndMetrics() {
     initialOverlapMetrics = calculateOverlapMetrics();
     initialNoRoomMetrics = calculateNoRoomMetrics();
     initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
-    console.log(initialTimeRegulationMetrics)
     initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
 
 }
@@ -1164,38 +1159,115 @@ function calculateTimeRegulationMetrics(){
             filteredClasses++; // Incrementa o contador de aulas filtradas
         }
     });
-
-    console.log(filteredClasses)
-    console.log(totalClasses)
     const overcrowdedPercentage = totalClasses > 0 ? ((filteredClasses / totalClasses) * 100) : 0;
-
-    console.log(overcrowdedPercentage)
     return overcrowdedPercentage;
 
 }
 
 function getRoomCharacteristics(roomName) {
-    // Assuming characteristicsTable is the Tabulator instance for the room characteristics table
-    const characteristicsData = characteristicsTable.getData(); // Get all room characteristics data
+    const characteristicsData = characteristicsTable.getData();
     const columns = characteristicsTable.getColumns();
-    // Find the room that matches the name
-    const room = characteristicsData.find(row => row["Nome sala"] === roomName); // Replace "Room Name" with the actual column name in your characteristics table
+    const room = characteristicsData.find(row => row["Nome sala"] === roomName);
 
     if (room) {
-        // Collect all characteristics marked with "X" (excluding "Horário sala visível portal público")
         const features = Object.keys(room)
             .filter(col => col !== "Horário sala visível portal público" && room[col] === "X")
-            .join(", "); // Join features with commas
+            .join(", ");
         return {
-            capacity: room["Capacidade Normal"], // Replace with the correct column name for capacity
-            features: features // Features will now be a comma-separated string
+            capacity: room["Capacidade Normal"],
+            features: features
         };
     } else {
         return null;
     }
 }
 
+
 scheduleTable.on("cellEdited", function (cell) {
+    const row = cell.getRow();
+
+if (cell.getColumn().getField() === "Dia") {
+    const newDate = cell.getValue(); // New date value
+    const originalDate = cell.getOldValue(); // Old date value
+    const room = row.getData()["Sala da aula"]; // Get the room of the class
+    const startTime = row.getData()["Início"];
+    const endTime = row.getData()["Fim"];
+
+    const parseDate = (dateStr) => {
+        const [day, month, year] = dateStr.split("/");
+        return new Date(`${year}-${month}-${day}`);
+    };
+
+    // Function to parse time in "HH:MM" format
+    const parseTime = (timeStr) => {
+        const [hours, minutes] = timeStr.split(":").map(Number);
+        return hours * 60 + minutes;
+    };
+
+    const startMinutes = parseTime(startTime);
+    const endMinutes = parseTime(endTime);
+
+    const parsedDate = parseDate(newDate);
+
+    if (isNaN(parsedDate)) {
+        alert("Erro: O valor da data não é válido.");
+        cell.setValue(originalDate); // Revert to the old value
+        return;
+    }
+
+    // Check if the new date is a weekend
+    const dayOfWeek = parsedDate.getDay();
+
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+        const userChoice = confirm(
+            "Aviso: O dia selecionado é um fim de semana. Deseja continuar com esta alteração?"
+        );
+        if (!userChoice) {
+            cell.setValue(originalDate); // Revert to the old value
+            return;
+        }
+    }
+
+    const isRoomAvailable = !scheduleTable.getRows().some((otherRow) => {
+        const otherRowData = otherRow.getData(); // Access data of another row
+        const otherDate = otherRowData["Dia"]; // Get the other row's date
+
+        // Ensure we check if it's the same room and same date
+        if (
+            otherRowData["Sala da aula"] === room &&
+            otherDate === newDate && // Compare the new date
+            otherRow !== row // Exclude the current row by comparing row instances
+        ) {
+            const otherStart = parseTime(otherRowData["Início"]);
+            const otherEnd = parseTime(otherRowData["Fim"]);
+
+            // Check for overlaps
+            const isOverlapping = (
+                (startMinutes < otherEnd && startMinutes >= otherStart) || // Overlaps start
+                (endMinutes > otherStart && endMinutes <= otherEnd) || // Overlaps end
+                (startMinutes <= otherStart && endMinutes >= otherEnd) // Encloses
+            );
+            return isOverlapping;
+        }
+        return false;
+    });
+
+    // If the room is not available, show an alert and revert the date change
+    if (!isRoomAvailable) {
+        alert("Erro: A sala não está disponível para o novo dia e horário.");
+        cell.setValue(originalDate); // Revert to the old value
+        return;
+    }
+
+    // Map day of week to names
+    const dayOfWeekMapping = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
+    const dayOfWeekName = dayOfWeekMapping[dayOfWeek];
+
+    // Update "Dia da Semana" column
+    row.update({ "Dia da Semana": dayOfWeekName });
+}
+
+
 
     if (cell.getColumn().getField() === "Sala da aula") {
             const originalValue = cell.getOldValue();
@@ -1215,13 +1287,11 @@ scheduleTable.on("cellEdited", function (cell) {
                 const roomCharacteristics = getRoomCharacteristics(roomName);
 
                 if (roomCharacteristics) {
-
                     row.update({
                         "Lotação": roomCharacteristics.capacity,
                         "Características reais da sala": roomCharacteristics.features
                     });
                 } else {
-
                     alert("Não há opções de Sala. Ira ficar com a sala atual.");
                     cell.setValue(originalValue);
                 }
@@ -1251,8 +1321,8 @@ scheduleTable.on("cellEdited", function (cell) {
     initialOverlapMetrics = updatedOverlapMetrics;
     initialNoRoomMetrics = updatedNoRoomMetrics;
     initialTimeRegulationMetrics = updatedTimeRegulationMetrics;
-    console.log(initialTimeRegulationMetrics)
     initialWrongCharacteristicsMetrics = updatedWrongCharacteristicsMetrics;
+
 });
 
 function updateScheduleWithRoomCharacteristics() {
