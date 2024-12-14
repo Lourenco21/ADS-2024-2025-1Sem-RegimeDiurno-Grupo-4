@@ -10,3 +10,12 @@ class Schedule(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Characteristics(models.Model):
+    name = models.CharField(max_length=255)  # File name
+    file = models.FileField(upload_to='characteristics/')  # Save to 'media/characteristics'
+    uploaded_at = models.DateTimeField(auto_now_add=True)  # Automatically set upload timestamp
+
+    def __str__(self):
+        return self.name

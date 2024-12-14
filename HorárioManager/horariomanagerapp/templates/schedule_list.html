@@ -11,28 +11,94 @@
     <table class="schedule-table">
     <thead>
         <tr>
-            <th>Horário</th>
+            <th>Nome do Ficheiro</th>
             <th>Carregado a</th>
             <th>Ação</th>
         </tr>
     </thead>
     <tbody>
-        {% for schedule in schedules %}
+        {% if schedules %}
+            {% for schedule in schedules %}
+                <tr>
+                    <td>{{ schedule.name }}</td>
+                    <td>{{ schedule.uploaded_at }}</td>
+                    <td>
+                        <div class="button-container">
+                            <a href="{% url 'schedule_detail' schedule.id %}" class="view-btn">Abrir</a>
+                            <form method="POST" action="{% url 'delete_schedule' schedule.id %}" class="inline-form">
+                                {% csrf_token %}
+                                <button type="submit" class="table-delete-btn" onclick="return confirmDelete('{{ schedule.name|escapejs }}');">Apagar</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+        {% else %}
             <tr>
-                <td>{{ schedule.name }}</td>
-                <td>{{ schedule.uploaded_at }}</td>
-                <td><a href="{% url 'schedule_detail' schedule.id %}" class="view-btn">View</a></td>
+                <td colspan="3" style="text-align: center;">Não há horários carregados.</td>
             </tr>
-        {% endfor %}
+        {% endif %}
     </tbody>
 </table>
-    <a href="{% url 'upload_schedule' %}" class="custom-file-input" style="text-decoration: none;">Upload a New Schedule</a>
+    <a href="{% url 'upload_schedule' %}" class="custom-file-input" style="text-decoration: none;">Selecionar um novo horário</a>
 
-<h3 style="color: red">Adicionar form para ficheiro de características</h3>
-<h3 style="color: red">Remover botões de uplaod na página schedule_detail</h3>
+        <h1>Características de salas carregadas</h1>
+    <table class="schedule-table">
+        <thead>
+            <tr>
+                <th>Nome do Ficheiro</th>
+                <th>Carregado a</th>
+                <th>Ação</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if characteristics %}
+                    <tr>
+                        <td>{{ characteristics.name }}</td>
+                        <td>{{ characteristics.uploaded_at }}</td>
+                        <td>
+                            <div class="button-container">
+                                <a href="{{ characteristics.file.url }}" target="_blank" class="view-btn">Abrir</a>
+                                <form method="POST" action="{% url 'delete_characteristics' characteristics.id %}" class="inline-form">
+                                    {% csrf_token %}
+                                    <button type="submit" class="table-delete-btn" onclick="return confirmDelete('{{ characteristics.name|escapejs }}');">Apagar</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+            {% else %}
+                <tr>
+                    <td colspan="3" style="text-align: center;">Não há características de salas carregadas.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+    <br><a href="{% url 'upload_characteristics' %}" class="custom-file-input" style="text-decoration: none;" id="uploadLink">Upload a New File</a>
+
+<script>
+
+    document.addEventListener("DOMContentLoaded", function() {
+
+        const characteristicsExists = {{ characteristics|yesno:"true,false" }};
+        const uploadLink = document.getElementById('uploadLink');
+
+        uploadLink.addEventListener('click', function(event) {
+            if (characteristicsExists) {
+                event.preventDefault();
+                alert("Para adicionar um novo ficheiro de características precisa de apagar o existente.");
+            }
+        });
+    });
+
+    function confirmDelete(fileName) {
+    return confirm("Apagar ficheiro " + fileName + "?");
+}
+</script>
+
 <h3 style="color: red">Adicionar botão para salvar progresso atual na página schedule_detail</h3>
 <h3 style="color: red">Alterar botão "guardar alterações num ficheiro novo" para também salvar o progresso atual no django</h3>
 <h3 style="color: red">Mudar títulos das páginas</h3>
+<h3 style="color: red">Adicionar visualização gráfica(???)</h3>
 </body>
 
 </html>

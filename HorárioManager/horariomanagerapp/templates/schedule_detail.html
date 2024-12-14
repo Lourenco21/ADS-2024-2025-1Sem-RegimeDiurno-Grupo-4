@@ -12,22 +12,9 @@
 
 </head>
 <body>
-<h1>Escolha os Ficheiros CSV</h1>
 
-<div class="button-container">
-    <label class="custom-file-input" for="scheduleFileInput">Horário</label>
-    <input type="file" id="scheduleFileInput" accept=".csv"/>
-
-
-    <label class="custom-file-input" for="characteristicsFileInput">Características das salas</label>
-    <input type="file" id="characteristicsFileInput" accept=".csv"/>
-
-</div>
-
-
-<h3 id="filesSelectedHeading" style="display: none; align-items: center;;">Files Selected</h3>
-<p id="scheduleFileName">Horário - {{ file_name }}</p>
-<p id="characteristicsFileName"></p>
+<h2 id="scheduleFileName" style="">Horário - {{ file_name }}</h2>
+<p id="characteristicsFileName">Características das Salas - {{ characteristics_name }}</p>
 
 
 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; width: 90%; margin: auto;">
@@ -97,7 +84,7 @@
 
 <br><br><br>
 
-<script src="{% static 'script.js' %}" file-url="{{ file_url }}"></script>
+<script src="{% static 'script.js' %}" file-url="{{ file_url }}" characteristics-url="{{ characteristics_url }}"></script>
 
 </body>
 </html>

@@ -186,18 +186,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             });
         })
-        .catch(error => console.error("Error fetching CSV:", error));
+        .catch(error => console.error("Erro a carregar ficheiro: ", error));
     checkIfFilesLoaded();
 });
 
 
-document.getElementById("characteristicsFileInput").addEventListener("change", function (event) {
-    const file = event.target.files[0];
+document.addEventListener("DOMContentLoaded", function () {
+    const scriptTag = document.querySelector('script[characteristics-url]');
+    const fileUrl = scriptTag.getAttribute('characteristics-url');
+    fetch (fileUrl)
+        .then(response => response.text())
+        .then(csvData => {
 
-    if (file) {
-        document.getElementById("characteristicsFileName").textContent = `Características das salas escolhidas: ${file.name}`;
-
-        Papa.parse(file, {
+        Papa.parse(csvData, {
             header: true,
             skipEmptyLines: true,
             complete: function (results) {
@@ -215,9 +216,9 @@ document.getElementById("characteristicsFileInput").addEventListener("change", f
                 alert("Houve um erro a ler o ficheiro.");
             },
         });
-    } else {
-        alert("Nenhum ficheiro selecionado!");
-    }
+
+    })
+        .catch(error => console.error("Erro a carregar ficheiro: ", error));
     checkIfFilesLoaded();
 });
 
