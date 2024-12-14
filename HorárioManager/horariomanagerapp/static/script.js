@@ -149,41 +149,44 @@ let initialWrongCharacteristicsMetrics = null;
 let originalScheduleData = [];
 
 // Upload file function
-document.getElementById("scheduleFileInput").addEventListener("change", function (event) {
-    const file = event.target.files[0];
+document.addEventListener("DOMContentLoaded", function () {
+    const scriptTag = document.querySelector('script[file-url]');
+    const fileUrl = scriptTag.getAttribute('file-url');
 
-    if (file) {
-        document.getElementById("scheduleFileName").textContent = `Horário escolhido: ${file.name}`;
+    // Fetch the CSV file and initialize the Tabulator table
+    fetch(fileUrl)
+        .then(response => response.text())
+        .then(csvData => {
+            // Parse the CSV data
+            Papa.parse(csvData, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function (results) {
+                    if (results.data.length === 0) {
+                        alert("Ficheiro CSV inválido.");
+                        return;
+                    }
 
-        Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: function (results) {
-                if (results.data.length === 0) {
-                    alert("Ficheiro CSV inválido.");
-                    return;
+                    originalScheduleData = results.data;
+
+                    // Initialize the schedule table
+                    const columns = generateColumns(results.data);
+                    scheduleTable.setColumns(columns);
+                    scheduleTable.setData(results.data); // Directly set the data
+
+                    // Calculate metrics
+                    initialOvercrowdMetrics = calculateOvercrowdedMetrics();
+                    initialOverlapMetrics = calculateOverlapMetrics();
+                    initialNoRoomMetrics = calculateNoRoomMetrics();
+                    initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
+                    initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
+                },
+                error: function (error) {
+                    alert("Houve um erro a ler o ficheiro.");
                 }
-
-                // Save the original data to the global variable
-                originalScheduleData = results.data;
-
-                const columns = generateColumns(results.data);
-                scheduleTable.setColumns(columns);
-                scheduleTable.setData(results.data);
-
-                initialOvercrowdMetrics = calculateOvercrowdedMetrics();
-                initialOverlapMetrics = calculateOverlapMetrics();
-                initialNoRoomMetrics = calculateNoRoomMetrics();
-                initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
-                initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
-            },
-            error: function (error) {
-                alert("Houve um erro a ler o ficheiro.");
-            },
-        });
-    } else {
-        alert("Nenhum ficheiro selecionado!");
-    }
+            });
+        })
+        .catch(error => console.error("Error fetching CSV:", error));
     checkIfFilesLoaded();
 });
 
@@ -391,101 +394,101 @@ document.getElementById("overcrowdedFilterButton").addEventListener("click", fun
 
 document.getElementById("overlapFilterButton").addEventListener("click", function () {
 
-resetFiltersAndMetrics();
+    resetFiltersAndMetrics();
 
-// Get the data from the schedule table
-const scheduleData = scheduleTable.getData();
+    // Get the data from the schedule table
+    const scheduleData = scheduleTable.getData();
 
-let totalClasses = scheduleData.length;
-let overlapClasses = 0;
+    let totalClasses = scheduleData.length;
+    let overlapClasses = 0;
 
-if (!scheduleData.length) {
-    alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
-    return;
-}
+    if (!scheduleData.length) {
+        alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
+        return;
+    }
 
-// Ensure required columns exist
-const hasRequiredColumns = scheduleData.some(row =>
-    "Início" in row &&
-    "Fim" in row &&
-    "Sala da aula" in row &&
-    "Dia" in row
-);
+    // Ensure required columns exist
+    const hasRequiredColumns = scheduleData.some(row =>
+        "Início" in row &&
+        "Fim" in row &&
+        "Sala da aula" in row &&
+        "Dia" in row
+    );
 
-if (!hasRequiredColumns) {
-    alert("O ficheiro CSV não contém as colunas necessárias ('Início', 'Fim', 'Sala da aula', 'Dia').");
-    return;
-}
+    if (!hasRequiredColumns) {
+        alert("O ficheiro CSV não contém as colunas necessárias ('Início', 'Fim', 'Sala da aula', 'Dia').");
+        return;
+    }
 
-// Filter out rows with empty "Sala da aula"
-const validData = scheduleData.filter(row => row["Sala da aula"] && row["Sala da aula"].trim() !== "");
+    // Filter out rows with empty "Sala da aula"
+    const validData = scheduleData.filter(row => row["Sala da aula"] && row["Sala da aula"].trim() !== "");
 
-if (!validData.length) {
-    alert("Todas as aulas possuem 'Sala da aula' vazia. Nenhuma sobreposição será calculada.");
-    return;
-}
+    if (!validData.length) {
+        alert("Todas as aulas possuem 'Sala da aula' vazia. Nenhuma sobreposição será calculada.");
+        return;
+    }
 
-// Convert time to minutes
-const parseTime = (timeStr) => {
-    const [hours, minutes] = timeStr.split(":").map(Number);
-    return hours * 60 + minutes;
-};
+    // Convert time to minutes
+    const parseTime = (timeStr) => {
+        const [hours, minutes] = timeStr.split(":").map(Number);
+        return hours * 60 + minutes;
+    };
 
-// Preprocess data to add parsed times and a group key
-validData.forEach(row => {
-    row._start = parseTime(row["Início"]);
-    row._end = parseTime(row["Fim"]);
-    row._key = `${row["Sala da aula"].trim()}_${row["Dia"].trim()}`;
-});
+    // Preprocess data to add parsed times and a group key
+    validData.forEach(row => {
+        row._start = parseTime(row["Início"]);
+        row._end = parseTime(row["Fim"]);
+        row._key = `${row["Sala da aula"].trim()}_${row["Dia"].trim()}`;
+    });
 
-// Group rows by "Sala da aula" and "Dia"
-const groupBy = (data, keyFn) => {
-    return data.reduce((acc, row) => {
-        const key = keyFn(row);
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(row);
-        return acc;
-    }, {});
-};
+    // Group rows by "Sala da aula" and "Dia"
+    const groupBy = (data, keyFn) => {
+        return data.reduce((acc, row) => {
+            const key = keyFn(row);
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(row);
+            return acc;
+        }, {});
+    };
 
-const groupedData = groupBy(validData, row => row._key);
+    const groupedData = groupBy(validData, row => row._key);
 
-const overlaps = [];
-const addedRows = new Set(); // Ensure no duplicate rows are added
+    const overlaps = [];
+    const addedRows = new Set(); // Ensure no duplicate rows are added
 
-// Check for overlaps within each group
-Object.values(groupedData).forEach(group => {
-    // Sort by start time for efficient comparison
-    group.sort((a, b) => a._start - b._start);
+    // Check for overlaps within each group
+    Object.values(groupedData).forEach(group => {
+        // Sort by start time for efficient comparison
+        group.sort((a, b) => a._start - b._start);
 
-    for (let i = 0; i < group.length; i++) {
-        const rowA = group[i];
-        const startA = rowA._start;
-        const endA = rowA._end;
+        for (let i = 0; i < group.length; i++) {
+            const rowA = group[i];
+            const startA = rowA._start;
+            const endA = rowA._end;
 
-        for (let j = i + 1; j < group.length; j++) {
-            const rowB = group[j];
-            const startB = rowB._start;
-            const endB = rowB._end;
+            for (let j = i + 1; j < group.length; j++) {
+                const rowB = group[j];
+                const startB = rowB._start;
+                const endB = rowB._end;
 
-            // Stop checking if no more overlaps are possible
-            if (startB >= endA) break;
+                // Stop checking if no more overlaps are possible
+                if (startB >= endA) break;
 
-            // Check if rows overlap
-            if ((startA < endB && startA >= startB) || (startB < endA && startB >= startA)) {
-                if (!addedRows.has(rowA)) {
-                    overlaps.push(rowA);
-                    addedRows.add(rowA);
-                    overlapClasses++;
-                }
-                if (!addedRows.has(rowB)) {
-                    overlaps.push(rowB);
-                    addedRows.add(rowB);
-                    overlapClasses++;
+                // Check if rows overlap
+                if ((startA < endB && startA >= startB) || (startB < endA && startB >= startA)) {
+                    if (!addedRows.has(rowA)) {
+                        overlaps.push(rowA);
+                        addedRows.add(rowA);
+                        overlapClasses++;
+                    }
+                    if (!addedRows.has(rowB)) {
+                        overlaps.push(rowB);
+                        addedRows.add(rowB);
+                        overlapClasses++;
+                    }
                 }
             }
         }
-    }
 });
 
 // Now apply the filter correctly using setFilter
@@ -1185,86 +1188,86 @@ function getRoomCharacteristics(roomName) {
 scheduleTable.on("cellEdited", function (cell) {
     const row = cell.getRow();
 
-if (cell.getColumn().getField() === "Dia") {
-    const newDate = cell.getValue(); // New date value
-    const originalDate = cell.getOldValue(); // Old date value
-    const room = row.getData()["Sala da aula"]; // Get the room of the class
-    const startTime = row.getData()["Início"];
-    const endTime = row.getData()["Fim"];
+    if (cell.getColumn().getField() === "Dia") {
+        const newDate = cell.getValue(); // New date value
+        const originalDate = cell.getOldValue(); // Old date value
+        const room = row.getData()["Sala da aula"]; // Get the room of the class
+        const startTime = row.getData()["Início"];
+        const endTime = row.getData()["Fim"];
 
-    const parseDate = (dateStr) => {
-        const [day, month, year] = dateStr.split("/");
-        return new Date(`${year}-${month}-${day}`);
-    };
+        const parseDate = (dateStr) => {
+            const [day, month, year] = dateStr.split("/");
+            return new Date(`${year}-${month}-${day}`);
+        };
 
-    // Function to parse time in "HH:MM" format
-    const parseTime = (timeStr) => {
-        const [hours, minutes] = timeStr.split(":").map(Number);
-        return hours * 60 + minutes;
-    };
+        // Function to parse time in "HH:MM" format
+        const parseTime = (timeStr) => {
+            const [hours, minutes] = timeStr.split(":").map(Number);
+            return hours * 60 + minutes;
+        };
 
-    const startMinutes = parseTime(startTime);
-    const endMinutes = parseTime(endTime);
+        const startMinutes = parseTime(startTime);
+        const endMinutes = parseTime(endTime);
 
-    const parsedDate = parseDate(newDate);
+        const parsedDate = parseDate(newDate);
 
-    if (isNaN(parsedDate)) {
-        alert("Erro: O valor da data não é válido.");
-        cell.setValue(originalDate); // Revert to the old value
-        return;
-    }
-
-    // Check if the new date is a weekend
-    const dayOfWeek = parsedDate.getDay();
-
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-        const userChoice = confirm(
-            "Aviso: O dia selecionado é um fim de semana. Deseja continuar com esta alteração?"
-        );
-        if (!userChoice) {
+        if (isNaN(parsedDate)) {
+            alert("Erro: O valor da data não é válido.");
             cell.setValue(originalDate); // Revert to the old value
             return;
         }
-    }
 
-    const isRoomAvailable = !scheduleTable.getRows().some((otherRow) => {
-        const otherRowData = otherRow.getData(); // Access data of another row
-        const otherDate = otherRowData["Dia"]; // Get the other row's date
+        // Check if the new date is a weekend
+        const dayOfWeek = parsedDate.getDay();
 
-        // Ensure we check if it's the same room and same date
-        if (
-            otherRowData["Sala da aula"] === room &&
-            otherDate === newDate && // Compare the new date
-            otherRow !== row // Exclude the current row by comparing row instances
-        ) {
-            const otherStart = parseTime(otherRowData["Início"]);
-            const otherEnd = parseTime(otherRowData["Fim"]);
-
-            // Check for overlaps
-            const isOverlapping = (
-                (startMinutes < otherEnd && startMinutes >= otherStart) || // Overlaps start
-                (endMinutes > otherStart && endMinutes <= otherEnd) || // Overlaps end
-                (startMinutes <= otherStart && endMinutes >= otherEnd) // Encloses
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            const userChoice = confirm(
+                "Aviso: O dia selecionado é um fim de semana. Deseja continuar com esta alteração?"
             );
-            return isOverlapping;
+            if (!userChoice) {
+                cell.setValue(originalDate); // Revert to the old value
+                return;
+            }
         }
-        return false;
-    });
 
-    // If the room is not available, show an alert and revert the date change
-    if (!isRoomAvailable) {
-        alert("Erro: A sala não está disponível para o novo dia e horário.");
-        cell.setValue(originalDate); // Revert to the old value
-        return;
+        const isRoomAvailable = !scheduleTable.getRows().some((otherRow) => {
+            const otherRowData = otherRow.getData(); // Access data of another row
+            const otherDate = otherRowData["Dia"]; // Get the other row's date
+
+            // Ensure we check if it's the same room and same date
+            if (
+                otherRowData["Sala da aula"] === room &&
+                otherDate === newDate && // Compare the new date
+                otherRow !== row // Exclude the current row by comparing row instances
+            ) {
+                const otherStart = parseTime(otherRowData["Início"]);
+                const otherEnd = parseTime(otherRowData["Fim"]);
+
+                // Check for overlaps
+                const isOverlapping = (
+                    (startMinutes < otherEnd && startMinutes >= otherStart) || // Overlaps start
+                    (endMinutes > otherStart && endMinutes <= otherEnd) || // Overlaps end
+                    (startMinutes <= otherStart && endMinutes >= otherEnd) // Encloses
+                );
+                return isOverlapping;
+            }
+            return false;
+        });
+
+        // If the room is not available, show an alert and revert the date change
+        if (!isRoomAvailable) {
+            alert("Erro: A sala não está disponível para o novo dia e horário.");
+            cell.setValue(originalDate); // Revert to the old value
+            return;
+        }
+
+        // Map day of week to names
+        const dayOfWeekMapping = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
+        const dayOfWeekName = dayOfWeekMapping[dayOfWeek];
+
+        // Update "Dia da Semana" column
+        row.update({ "Dia da Semana": dayOfWeekName });
     }
-
-    // Map day of week to names
-    const dayOfWeekMapping = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
-    const dayOfWeekName = dayOfWeekMapping[dayOfWeek];
-
-    // Update "Dia da Semana" column
-    row.update({ "Dia da Semana": dayOfWeekName });
-}
 
 
 

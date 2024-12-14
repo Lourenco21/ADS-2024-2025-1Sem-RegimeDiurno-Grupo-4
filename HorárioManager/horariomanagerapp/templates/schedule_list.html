@@ -1,21 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'horariomanagerapp/style.css' %}">
     <meta charset="UTF-8">
     <title>Title</title>
 </head>
 <body>
-    <h1>Uploaded Schedules</h1>
-    <ul>
+    <h1>Horários Carregados</h1>
+    <table class="schedule-table">
+    <thead>
+        <tr>
+            <th>Horário</th>
+            <th>Carregado a</th>
+            <th>Ação</th>
+        </tr>
+    </thead>
+    <tbody>
         {% for schedule in schedules %}
-            <li>
-                <a href="{% url 'schedule_detail' schedule.id %}">
-                    {{ schedule.name }} - Uploaded on {{ schedule.uploaded_at }}
-                </a>
-            </li>
+            <tr>
+                <td>{{ schedule.name }}</td>
+                <td>{{ schedule.uploaded_at }}</td>
+                <td><a href="{% url 'schedule_detail' schedule.id %}" class="view-btn">View</a></td>
+            </tr>
         {% endfor %}
-    </ul>
-    <a href="{% url 'upload_schedule' %}">Upload a New Schedule</a>
+    </tbody>
+</table>
+    <a href="{% url 'upload_schedule' %}" class="custom-file-input" style="text-decoration: none;">Upload a New Schedule</a>
+
+<h3 style="color: red">Adicionar form para ficheiro de características</h3>
+<h3 style="color: red">Remover botões de uplaod na página schedule_detail</h3>
+<h3 style="color: red">Adicionar botão para salvar progresso atual na página schedule_detail</h3>
+<h3 style="color: red">Alterar botão "guardar alterações num ficheiro novo" para também salvar o progresso atual no django</h3>
+<h3 style="color: red">Mudar títulos das páginas</h3>
 </body>
 
 </html>
