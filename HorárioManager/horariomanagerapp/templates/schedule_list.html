@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <h1>Uploaded Schedules</h1>
+    <ul>
+        {% for schedule in schedules %}
+            <li>
+                <a href="{% url 'schedule_detail' schedule.id %}">
+                    {{ schedule.name }} - Uploaded on {{ schedule.uploaded_at }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+    <a href="{% url 'upload_schedule' %}">Upload a New Schedule</a>
+</body>
+
+</html>
