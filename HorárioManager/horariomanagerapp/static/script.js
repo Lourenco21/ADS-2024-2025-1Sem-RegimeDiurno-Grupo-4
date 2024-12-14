@@ -234,7 +234,14 @@ function checkIfFilesLoaded() {
     }
 }
 
-// Dynamically generate columns from data
+function getCharacteristics() {
+    const characteristicsColumns = characteristicsTable.getColumns();
+    return characteristicsColumns
+        .slice(5)
+        .map(column => column.getField())
+        .filter(field => field !== "Horário sala visível portal público");
+}
+
 function generateColumns(data) {
     return Object.keys(data[0] || {}).map((field, index) => {
         const nonEditableColumns = [
@@ -266,6 +273,25 @@ function generateColumns(data) {
                         }
                     };
                 }
+                if (field === "Características da sala pedida para a aula") {
+                return {
+                    title: field.charAt(0).toUpperCase() + field.slice(1),
+                    field: field,
+                    headerMenu: headerMenu,
+                    headerFilter: "input",
+                    headerFilterPlaceholder: "Search...",
+                    headerWordWrap: true,
+                    editor: characteristicsTable.getData().length === 0 ? false : "list", // Disable editor if no data
+                    editorParams: function () {
+                        const characteristics = getCharacteristics();
+                        return {
+                            values: characteristics.length > 0
+                                ? ["Nenhuma característica", ...characteristics]
+                                : ["Sem características disponíveis"] // Fallback value if no characteristics
+                        };
+                    }
+                };
+            }
         return {
             title: field.charAt(0).toUpperCase() + field.slice(1),
             field: field,
@@ -276,6 +302,33 @@ function generateColumns(data) {
             editor: !nonEditableColumns.includes(field)
         };
     });
+}
+
+// Update the schedule table when characteristicsTable data is ready
+characteristicsTable.on("dataProcessed", function () {
+    console.log("A");
+    onCharacteristicsTableLoaded(); // Update the schedule table
+});
+
+function onCharacteristicsTableLoaded() {
+    const scheduleColumns = scheduleTable.getColumns();
+    scheduleColumns.forEach(column => {
+        if (column.getField() === "Características da sala pedida para a aula") {
+            column.updateDefinition({
+                editor: characteristicsTable.getData().length === 0 ? false : "list",
+                editorParams: function () {
+                    const characteristics = getCharacteristics(); // Function to fetch the characteristics
+                    return {
+                        values: characteristics.length > 0
+                            ? ["Nenhuma característica", ...characteristics] // Add "No characteristic" option
+                            : ["Sem características disponíveis"] // Fallback if no characteristics are available
+                    };
+                }
+            });
+        }
+    });
+
+    scheduleTable.redraw(); // Apply column updates
 }
 // Define header menu for column visibility toggle with checkboxes
 var headerMenu = function () {
@@ -1186,6 +1239,11 @@ function getRoomCharacteristics(roomName) {
 }
 
 scheduleTable.on("cellEdited", function (cell) {
+
+    if (cell.getValue() === "Nenhuma característica") {
+                        cell.setValue(""); // Clear the cell's value
+                    }
+
     const row = cell.getRow();
 
     if (cell.getColumn().getField() === "Dia") {
