@@ -38,6 +38,12 @@ function getMatchingRooms(rowData) {
     if (requestedFeatures.includes("sala/anfiteatro aulas")) {
         requestedFeatures.push("sala de aulas normal", "anfiteatro aulas");
     }
+    if (requestedFeatures.includes("lab ista")) {
+        requestedFeatures.push("laboratório de arquitectura de computadores i", "laboratório de arquitectura de computadores ii",
+            "laboratório de bases de engenharia", "laboratório de eletrónica", "laboratório de telecomunicações", "laboratório de informática",
+            "laboratório de redes de computadores i", "laboratório de redes de computadores ii");
+    }
+
 
     const roomData = characteristicsTable.getData();
 
