@@ -1,8 +1,13 @@
+from django.core.files.base import ContentFile
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+import json
+import base64
+import os
 from .models import Schedule, Characteristics
 from django.contrib import messages
-from django.core.files.storage import FileSystemStorage
-
+from django.core.files.storage import default_storage
 
 # Create your views here.
 
@@ -28,14 +33,14 @@ def upload_schedule(request):
 def schedule_detail(request, schedule_id):
     schedule = get_object_or_404(Schedule, id=schedule_id)
     characteristics = Characteristics.objects.last()
-    file_name = schedule.file.name.replace('schedules/', '')
+    file_name = os.path.basename(schedule.file.name)
     return render(request, 'schedule_detail.html', {
         'schedule': schedule,
         'file_url': schedule.file.url,
         'file_name': file_name,
         'characteristics': characteristics,
         'characteristics_url': characteristics.file.url,
-        'characteristics_name': characteristics.file.name,
+        'characteristics_name': os.path.basename(characteristics.file.name),
     })
 
 
@@ -75,3 +80,34 @@ def delete_schedule(request, pk):
         messages.success(request, "File deleted successfully.")
         return redirect('schedule_list')
     return redirect('upload_schedule')
+
+
+@csrf_exempt  # Use proper CSRF handling in production
+def update_schedule_file(request, schedule_id):
+    if request.method == "POST":
+        if 'file' in request.FILES:
+            schedule = get_object_or_404(Schedule, id=schedule_id)
+            new_file = request.FILES['file']
+
+            # Extract the base name of the existing file (removes directory)
+            existing_file_name = os.path.basename(schedule.file.name)  # Extract "schedule1.csv" from "schedules/schedule1.csv"
+
+            if schedule.file:
+                # Delete the old file
+                schedule.file.delete()
+
+            # Save the new file with the same name but in the schedules/ directory
+            new_file_path = f"schedules_updated/{existing_file_name}"
+
+            # Save the new file with the same path
+            schedule.file.save(new_file_path, new_file)
+
+            # Save the schedule instance with the updated file
+            schedule.save()
+
+            return JsonResponse({"success": True, "message": "File updated successfully."})
+        else:
+            return JsonResponse({"success": False, "message": "No file field in request.FILES."}, status=400)
+
+    return JsonResponse({"success": False, "message": "Invalid request method."}, status=405)
+

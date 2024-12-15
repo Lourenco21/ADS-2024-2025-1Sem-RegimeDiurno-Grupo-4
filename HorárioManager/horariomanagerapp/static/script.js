@@ -105,7 +105,7 @@ function getMatchingRooms(rowData) {
 
 
 // Initialize Tabulator
-var scheduleTable = new Tabulator("#schedule-table", {
+window.scheduleTable = new Tabulator("#schedule-table", {
     layout: "fitDataFill",
     height: 600,
     pagination: "local",
@@ -193,7 +193,6 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         })
         .catch(error => console.error("Erro a carregar ficheiro: ", error));
-    checkIfFilesLoaded();
 });
 
 
@@ -225,21 +224,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     })
         .catch(error => console.error("Erro a carregar ficheiro: ", error));
-    checkIfFilesLoaded();
 });
-
-function checkIfFilesLoaded() {
-    // Check if both files are selected
-    const scheduleFileLoaded = document.getElementById("scheduleFileInput").files.length > 0;
-    const characteristicsFileLoaded = document.getElementById("characteristicsFileInput").files.length > 0;
-
-    // Show or hide the "Files Selected" heading based on whether both files are loaded
-    if (scheduleFileLoaded || characteristicsFileLoaded) {
-        document.getElementById("filesSelectedHeading").style.display = 'block';
-    } else {
-        document.getElementById("filesSelectedHeading").style.display = 'none';
-    }
-}
 
 function getCharacteristics() {
     const characteristicsColumns = characteristicsTable.getColumns();
@@ -841,33 +826,7 @@ scheduleTable.on("cellDblClick", function(e, cell) {
 
 
 
-document.getElementById("saveChangesButton").addEventListener("click", function () {
-    const modifiedData = scheduleTable.getData(); // Get the current table data
 
-    if (modifiedData.length === 0) {
-        alert("Não há um ficheiro para guardar!");
-        return;
-    }
-
-    const fileName = prompt("Enter a name for the file (without extension):", "schedule_data");
-
-    if (!fileName) {
-        alert("Nome do ficheiro é necessário!");
-        return;
-    }
-
-    const csvContent = Papa.unparse(modifiedData);
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.download = `${fileName}.csv`;
-
-    link.click();
-    URL.revokeObjectURL(url);
-});
 
 document.getElementById("classWithoutRoomButton").addEventListener("click", function () {
 
@@ -1431,4 +1390,87 @@ document.getElementById("updateScheduleCharacteristicsButton").addEventListener(
 });
 
 
+function saveScheduleChanges(scheduleId) {
+    const tableData = scheduleTable.getData(); // Get all data from Tabulator
 
+    if (!tableData || tableData.length === 0) {
+        alert("No data available to save.");
+        return;
+    }
+
+    // Convert data back to CSV
+    const csvContent = Papa.unparse(tableData);
+
+    // Create a Blob from the CSV content
+    const csvBlob = new Blob([csvContent], { type: "text/csv" });
+    const fileName = "updated_schedule.csv";
+
+    // Append the Blob to FormData
+    const formData = new FormData();
+    formData.append("file", csvBlob, fileName);
+
+    // Send the file to Django
+    fetch(`/update-schedule/${scheduleId}/`, {
+        method: "POST",
+        body: formData,
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            if (data.success) {
+                alert(data.message);
+            } else {
+                alert("Error: " + data.message);
+            }
+        })
+        .catch((error) => {
+            console.error("Error:", error);
+            alert("An error occurred while saving the file.");
+        });
+}
+
+// Add event listener to the button
+document.addEventListener("DOMContentLoaded", function () {
+    const storeChangesButton = document.getElementById("storeChangesButton");
+
+    if (storeChangesButton) {
+        // Pass the schedule ID dynamically, e.g., via a data-attribute
+        const scheduleId = storeChangesButton.dataset.scheduleId;
+
+        storeChangesButton.addEventListener("click", function () {
+            saveScheduleChanges(scheduleId);
+        });
+    } else {
+        console.error("storeChangesButton not found in the DOM.");
+    }
+});
+
+document.getElementById("saveChangesButton").addEventListener("click", function () {
+    const scriptTag = document.querySelector('script[data-schedule-id]');
+    const scheduleId = scriptTag.getAttribute("data-schedule-id");
+    saveScheduleChanges(scheduleId);
+    const modifiedData = scheduleTable.getData(); // Get the current table data
+
+    if (modifiedData.length === 0) {
+        alert("Não há um ficheiro para guardar!");
+        return;
+    }
+
+    const fileName = prompt("Enter a name for the file (without extension):", "schedule_data");
+
+    if (!fileName) {
+        alert("Nome do ficheiro é necessário!");
+        return;
+    }
+
+    const csvContent = Papa.unparse(modifiedData);
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = `${fileName}.csv`;
+
+    link.click();
+    URL.revokeObjectURL(url);
+});
