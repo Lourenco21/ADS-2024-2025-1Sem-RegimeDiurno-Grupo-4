@@ -44,6 +44,15 @@ def schedule_detail(request, schedule_id):
     })
 
 
+def characteristics_detail(request, characteristics_id):
+    characteristics = get_object_or_404(Characteristics, id=characteristics_id)
+    return render(request, 'characteristics_detail.html',
+                  {
+                      'characteristics': characteristics,
+                      'characteristics_url': characteristics.file.url,
+                  })
+
+
 def upload_characteristics(request):
     if request.method == 'POST' and request.FILES['file']:
         file = request.FILES['file']

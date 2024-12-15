@@ -58,7 +58,7 @@
                         <td>{{ characteristics.uploaded_at }}</td>
                         <td>
                             <div class="button-container">
-                                <a href="{{ characteristics.file.url }}" target="_blank" class="view-btn">Abrir</a>
+                                <a href="{% url 'characteristics_detail' characteristics.id %}" class="view-btn">Abrir</a>
                                 <form method="POST" action="{% url 'delete_characteristics' characteristics.id %}" class="inline-form">
                                     {% csrf_token %}
                                     <button type="submit" class="table-delete-btn" onclick="return confirmDelete('{{ characteristics.name|escapejs }}');">Apagar</button>
@@ -95,7 +95,6 @@
 }
 </script>
 
-<h3 style="color: red">Mudar títulos das páginas</h3>
 <h3 style="color: red">Adicionar visualização gráfica(???)</h3>
 </body>
 

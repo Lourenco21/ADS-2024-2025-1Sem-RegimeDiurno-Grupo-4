@@ -9,4 +9,5 @@ urlpatterns = [
     path('characteristics/delete/<int:pk>/', views.delete_characteristics, name='delete_characteristics'),
     path('schedule/delete/<int:pk>/', views.delete_schedule, name='delete_schedule'),
     path('update-schedule/<int:schedule_id>/', views.update_schedule_file, name='update_schedule_file'),
+    path('characteristics/<int:characteristics_id>/', views.characteristics_detail, name='characteristics_detail'),
 ]

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'horariomanagerapp/characteristics.css' %}">
+    <meta charset="UTF-8">
+    <title>Características das Salas</title>
+    <link href="https://unpkg.com/tabulator-tables@5.4.0/dist/css/tabulator.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/tabulator-tables@5.4.0/dist/js/tabulator.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+</head>
+<body>
+
+<h1>Características das Salas</h1>
+<div id="characteristics-table"></div>
+
+<script src="{% static 'characteristics.js' %}"
+    characteristics-url="{{ characteristics_url }}"
+    characteristics-id="{{ characteristics_id }}">
+</script>
+
+<br><br>
+
+<a href="{% url 'schedule_list' %}" class="custom-file-input" style="text-decoration: none;">Voltar à lista de horários</a>
+
+<br><br><br><br><br><br><br><br><br><br>
+<br><br><br><br><br><br><br><br><br><br>
+<br><br><br><br>
+
+
+</body>
+</html>
