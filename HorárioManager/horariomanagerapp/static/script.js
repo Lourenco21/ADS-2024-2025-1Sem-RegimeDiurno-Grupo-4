@@ -1206,6 +1206,15 @@ function getRoomCharacteristics(roomName) {
 
 scheduleTable.on("cellEdited", function (cell) {
 
+    if (cell.getColumn().getField() === "Inscritos no turno") {
+            const value = cell.getValue();
+            if (isNaN(value) || value < 0 || !Number.isInteger(Number(value))) {
+                alert("Erro: Apenas números inteiros positivos são permitidos.");
+                cell.setValue(cell.getOldValue());
+
+            }
+        }
+
     if (cell.getValue() === "Nenhuma característica") {
                         cell.setValue(""); // Clear the cell's value
                     }
