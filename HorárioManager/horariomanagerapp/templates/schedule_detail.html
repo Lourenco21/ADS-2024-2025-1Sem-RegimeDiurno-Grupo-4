@@ -13,14 +13,21 @@
 </head>
 <body>
 
-<h2 id="scheduleFileName" style="">Horário - {{ file_name }}</h2>
-<p id="characteristicsFileName">Características das Salas - {{ characteristics_name }}</p>
+    <div class="header-container">
+        <h1 class="page-title">Gestão de Horários - Filtros e Alterações</h1>
+        <button id="saveChangesButton" class="custom-file-input">Transferir ficheiro com alterações</button>
+        <button id="storeChangesButton" data-schedule-id="{{ schedule.id }}" class="custom-file-input">Guardar alterações</button>
+        <button id="toggleButton" class="custom-file-input">Mostrar tabela de características</button>
+        <button id="updateScheduleCharacteristicsButton" class="custom-file-input">Atualizar Caracteristicas Horário</button>
+        <input type="file" id="fileInput" style="display: none;" />
+        <a href="{% url 'schedule_list' %}" class="custom-file-input" style="text-decoration: none;">Voltar à lista de horários</a>
+    </div>
 
 
 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; width: 90%; margin: auto;">
 
     <div id="schedule-container" style="flex: 3; min-width: 60%;">
-        <h2>Horário</h2>
+        <h2>Horário - {{ file_name }}</h2>
         <div id="schedule-table"></div>
         <br>
 
@@ -63,17 +70,6 @@
 </div>
 
 
-
-<div style="display: flex; justify-content: space-around; align-items: flex-start; gap: 20px; margin-top: 20px;">
-    <button id="saveChangesButton" class="custom-file-input">Transferir ficheiro com alterações</button>
-    <button id="toggleButton" class="custom-file-input">Mostrar tabela de características</button>
-    <button id="updateScheduleCharacteristicsButton" class="custom-file-input">Atualizar Caracteristicas Horário</button>
-    <input type="file" id="fileInput" style="display: none;" />
-    <button id="storeChangesButton" data-schedule-id="{{ schedule.id }}" class="custom-file-input">Guardar alterações</button>
-</div>
-<br>
-<br>
-
 <h2 id="characteristics-h2" style="display: none">Características das Salas</h2>
 <div id="characteristics-table">
 </div>
@@ -82,7 +78,7 @@
     <div id="metricBalance" style="font-weight: bold;"></div>
 </div>
 
-<a href="{% url 'schedule_list' %}" class="custom-file-input" style="text-decoration: none;">Voltar à lista de horários</a>
+
 
 <br><br><br>
 

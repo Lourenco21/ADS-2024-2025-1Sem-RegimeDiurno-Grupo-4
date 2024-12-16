@@ -7,6 +7,14 @@
     <title>Home</title>
 </head>
 <body>
+<div class="header-container">
+    <h1 class="page-title">Gestão de Horários e Características</h1>
+    <div class="button-group">
+        <a href="{% url 'dashboard' %}" class="custom-file-input" style="text-decoration: none;">Qualidade de horários</a>
+        <a href="{% url 'upload_characteristics' %}" class="custom-file-input" id="uploadLink" style="text-decoration: none;">Selecionar um novo ficherio de características</a>
+        <a href="{% url 'upload_schedule' %}" class="custom-file-input" id="uploadLink" style="text-decoration: none;">Selecionar um novo horário</a>
+    </div>
+</div>
     <h1>Horários Carregados</h1>
     <table class="schedule-table">
     <thead>
@@ -40,7 +48,6 @@
         {% endif %}
     </tbody>
 </table>
-    <a href="{% url 'upload_schedule' %}" class="custom-file-input" style="text-decoration: none;">Selecionar um novo horário</a>
 
         <h1>Características de salas carregadas</h1>
     <table class="schedule-table">
@@ -73,11 +80,7 @@
             {% endif %}
         </tbody>
     </table>
-    <br>
-    <a href="{% url 'upload_characteristics' %}" class="custom-file-input" style="text-decoration: none;" id="uploadLink">Selecionar um novo ficherio de características</a>
-
-    <br><br>
-    <a href="{% url 'dashboard' %}" class="custom-file-input" style="text-decoration: none;" id="uploadLink">Qualidade de horários</a>
+<br><br>
 
 <script>
 
@@ -99,7 +102,6 @@
 }
 </script>
 
-<h3 style="color: red">Adicionar visualização gráfica(???)</h3>
 </body>
 
 </html>

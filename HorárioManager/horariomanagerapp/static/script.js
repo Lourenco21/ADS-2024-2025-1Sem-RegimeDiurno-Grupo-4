@@ -138,7 +138,6 @@ document.addEventListener("DOMContentLoaded", function () {
     fetch(fileUrl)
         .then(response => response.text())
         .then(csvData => {
-            // Parse the CSV data
             Papa.parse(csvData, {
                 header: true,
                 skipEmptyLines: true,
@@ -186,7 +185,7 @@ console.log("Update URL:", updateUrl);
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken() // Ensure CSRF protection for Django
+            'X-CSRFToken': getCsrfToken()
         },
         body: JSON.stringify(metrics)
     })
@@ -1324,6 +1323,21 @@ function saveScheduleChanges(scheduleId) {
             } else {
                 alert("Error: " + data.message);
             }
+            initialOvercrowdMetrics = calculateOvercrowdedMetrics();
+            initialOverlapMetrics = calculateOverlapMetrics();
+            initialNoRoomMetrics = calculateNoRoomMetrics();
+            initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
+            initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
+
+            const metrics = {
+                overcrowded: initialOvercrowdMetrics,
+                overlap: initialOverlapMetrics,
+                no_room: initialNoRoomMetrics,
+                time_regulation: initialTimeRegulationMetrics,
+                wrong_characteristics: initialWrongCharacteristicsMetrics
+            };
+
+            updateMetricsOnServer(scheduleId, metrics);
         })
         .catch((error) => {
             console.error("Error:", error);

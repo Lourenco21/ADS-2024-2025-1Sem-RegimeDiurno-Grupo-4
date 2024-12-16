@@ -4,29 +4,250 @@
     {% load static %}
     <link rel="stylesheet" type="text/css" href="{% static 'horariomanagerapp/style.css' %}">
     <meta charset="UTF-8">
-    <title>Qualidade</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qualidade de Horários</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+
+        .schedule-card {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 30px;
+        }
+
+        .schedule-card h3 {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .metrics {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .metrics > div {
+            flex: 1 1 calc(20% - 20px);
+            text-align: center;
+        }
+
+        .metrics p {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 150px;
+            margin-top: 10px;
+        }
+
+        .chart-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+    </style>
 </head>
 <body>
-    <h1>Qualidade de Horários</h1>
+    <div class="header-container">
+        <h1 class="page-title">Qualidade de Horários</h1>
+        <a href="{% url 'schedule_list' %}" class="custom-file-input" style="text-decoration: none;">Voltar à lista de horários</a>
+    </div>
+
     {% if schedules %}
-            {% for schedule in schedules %}
+        {% for schedule in schedules %}
+            <div class="schedule-card">
                 <h3>{{ schedule.name }}</h3>
+
                 {% if schedule.overcrowded is not None %}
-                    <p>Sobrelotação: {{ schedule.overcrowded }}</p>
-                    <p>Sobreposição: {{ schedule.overlap }}</p>
-                    <p>Sem sala: {{ schedule.no_room }}</p>
-                    <p>Características Erradas: Contra regulação de horários: {{ schedule.time_regulation }}</p>
-                    <p>{{ schedule.wrong_characteristics }}</p>
-                    <br>
+                    <div class="metrics">
+                        <div>
+                            <p>Sobrelotação - {{ schedule.overcrowded }}%</p>
+                            <div class="chart-container">
+                                <canvas id="overcrowdedChart{{ schedule.id }}"></canvas>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p>Sobreposição - {{ schedule.overlap }}%</p>
+                            <div class="chart-container">
+                                <canvas id="overlapChart{{ schedule.id }}"></canvas>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p>Sem Sala - {{ schedule.no_room }}%</p>
+                            <div class="chart-container">
+                                <canvas id="noRoomChart{{ schedule.id }}"></canvas>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p>Características Erradas - {{ schedule.wrong_characteristics }}%</p>
+                            <div class="chart-container">
+                                <canvas id="wrongCharacteristicsChart{{ schedule.id }}"></canvas>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p>Contra Regulação - {{ schedule.time_regulation }}%</p>
+                            <div class="chart-container">
+                                <canvas id="timeRegulationChart{{ schedule.id }}"></canvas>
+                            </div>
+                        </div>
+                    </div>
                 {% else %}
-                    <p>Para conseguir visualizar a informação, por favor abra primeiro a página do horário </p>
+                    <p class="no-data">Para conseguir visualizar a informação, por favor abra primeiro a página do horário.</p>
                 {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-center">Nenhum horário encontrado.</p>
+    {% endif %}
+
+    <br><br>
+
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            {% for schedule in schedules %}
+                new Chart(document.getElementById('overcrowdedChart{{ schedule.id }}'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Sobrelotação'],
+                        datasets: [{
+                            label: 'Sobrelotação',
+                            data: [{{ schedule.overcrowded }}],
+                            backgroundColor: ['#FF5733'],
+                            borderColor: ['#FF5733'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    stepSize: 10
+                                }
+                            }
+                        }
+                    }
+                });
+
+                new Chart(document.getElementById('overlapChart{{ schedule.id }}'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Sobreposição'],
+                        datasets: [{
+                            label: 'Sobreposição',
+                            data: [{{ schedule.overlap }}],
+                            backgroundColor: ['#33B5FF'],
+                            borderColor: ['#33B5FF'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    stepSize: 10
+                                }
+                            }
+                        }
+                    }
+                });
+
+                new Chart(document.getElementById('noRoomChart{{ schedule.id }}'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Sem Sala'],
+                        datasets: [{
+                            label: 'Sem Sala',
+                            data: [{{ schedule.no_room }}],
+                            backgroundColor: ['#4CAF50'],
+                            borderColor: ['#4CAF50'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    stepSize: 10
+                                }
+                            }
+                        }
+                    }
+                });
+
+                new Chart(document.getElementById('wrongCharacteristicsChart{{ schedule.id }}'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Características Erradas'],
+                        datasets: [{
+                            label: 'Características Erradas',
+                            data: [{{ schedule.wrong_characteristics }}],
+                            backgroundColor: ['#FFEB3B'],
+                            borderColor: ['#FFEB3B'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    stepSize: 10
+                                }
+                            }
+                        }
+                    }
+                });
+
+                new Chart(document.getElementById('timeRegulationChart{{ schedule.id }}'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Contra Regulação'],
+                        datasets: [{
+                            label: 'Contra Regulação',
+                            data: [{{ schedule.time_regulation }}],
+                            backgroundColor: ['#9C27B0'],
+                            borderColor: ['#9C27B0'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    stepSize: 10
+                                }
+                            }
+                        }
+                    }
+                });
             {% endfor %}
-    {%  endif  %}
-    <div id="overcrowdedMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
-    <div id="overlapMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
-    <div id="withoutRoomMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
-    <div id="timeRegulationsMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
-    <div id="characteristicsMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
+        });
+    </script>
+
 </body>
 </html>
