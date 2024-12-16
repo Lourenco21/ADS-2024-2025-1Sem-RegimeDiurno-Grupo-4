@@ -140,3 +140,87 @@ var headerMenu = function () {
 
     return menu;
 };
+
+function saveCharacteristicsChanges(characteristicsId) {
+    const tableData = characteristicsTable.getData(); // Get all data from Tabulator
+
+    if (!tableData || tableData.length === 0) {
+        alert("No data available to save.");
+        return;
+    }
+
+    // Convert data back to CSV
+    const csvContent = Papa.unparse(tableData);
+
+    // Create a Blob from the CSV content
+    const csvBlob = new Blob([csvContent], { type: "text/csv" });
+    const fileName = "updated_characteristics.csv";
+
+    // Append the Blob to FormData
+    const formData = new FormData();
+    formData.append("file", csvBlob, fileName);
+
+    fetch(`/update-characteristics/${characteristicsId}/`, {
+        method: "POST",
+        body: formData,
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            if (data.success) {
+                alert(data.message);
+            } else {
+                alert("Error: " + data.message);
+            }
+        })
+        .catch((error) => {
+            console.error("Error:", error);
+            alert("An error occurred while saving the file.");
+        });
+}
+
+// Add event listener to the button
+document.addEventListener("DOMContentLoaded", function () {
+    const storeChangesButton = document.getElementById("storeChangesButton");
+
+    if (storeChangesButton) {
+
+        const characteristicsId = storeChangesButton.dataset.characteristicsId;
+
+        storeChangesButton.addEventListener("click", function () {
+            saveCharacteristicsChanges(characteristicsId);
+        });
+    } else {
+        console.error("storeChangesButton not found in the DOM.");
+    }
+});
+
+document.getElementById("saveChangesButton").addEventListener("click", function () {
+    const scriptTag = document.querySelector('script[characteristics-id]');
+    const characteristicsId = scriptTag.getAttribute("characteristics-id");
+    saveCharacteristicsChanges(characteristicsId);
+    const modifiedData = characteristicsTable.getData(); // Get the current table data
+
+    if (modifiedData.length === 0) {
+        alert("Não há um ficheiro para guardar!");
+        return;
+    }
+
+    const fileName = prompt("Enter a name for the file (without extension):", "schedule_data");
+
+    if (!fileName) {
+        alert("Nome do ficheiro é necessário!");
+        return;
+    }
+
+    const csvContent = Papa.unparse(modifiedData);
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = `${fileName}.csv`;
+
+    link.click();
+    URL.revokeObjectURL(url);
+});
