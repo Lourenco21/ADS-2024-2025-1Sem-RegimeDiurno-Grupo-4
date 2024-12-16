@@ -1,2 +1,3 @@
 HorárioManager/db.sqlite3
 HorárioManager/media
+*.sqlite3
