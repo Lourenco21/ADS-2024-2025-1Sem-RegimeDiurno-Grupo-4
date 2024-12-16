@@ -23,5 +23,10 @@ class Characteristics(models.Model):
     file = models.FileField(upload_to='characteristics/')  # Save to 'media/characteristics'
     uploaded_at = models.DateTimeField(auto_now_add=True)  # Automatically set upload timestamp
 
+    def save(self, *args, **kwargs):
+        if self.pk and self.file:  # Check if this is an update to an existing record
+            self.uploaded_at = now()  # Update the timestamp to the current time
+        super().save(*args, **kwargs)  # Call the parent save method
+
     def __str__(self):
         return self.name

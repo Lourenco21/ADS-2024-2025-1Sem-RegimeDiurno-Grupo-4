@@ -14,19 +14,21 @@
 <h1>Características das Salas</h1>
 <div id="characteristics-table"></div>
 
-<script src="{% static 'characteristics.js' %}"
-    characteristics-url="{{ characteristics_url }}"
-    characteristics-id="{{ characteristics_id }}">
-</script>
 
 <br><br>
-
+<div style="display: flex; justify-content: space-around; align-items: flex-start; gap: 20px; margin-top: 20px;">
+    <button id="saveChangesButton" class="custom-file-input">Transferir ficheiro com alterações</button>
+    <input type="file" id="fileInput" style="display: none;" />
+    <button id="storeChangesButton" data-characteristics-id="{{ characteristics.id }}" class="custom-file-input">Guardar alterações</button>
+</div>
+<br>
 <a href="{% url 'schedule_list' %}" class="custom-file-input" style="text-decoration: none;">Voltar à lista de horários</a>
 
 <br><br><br><br><br><br><br><br><br><br>
 <br><br><br><br><br><br><br><br><br><br>
 <br><br><br><br>
 
+<script src="{% static 'characteristics.js' %}" characteristics-url="{{ characteristics_url }}" characteristics-id="{{ characteristics.id }}"></script>
 
 </body>
 </html>
