@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'horariomanagerapp/style.css' %}">
+    <meta charset="UTF-8">
+    <title>Qualidade</title>
+</head>
+<body>
+    <h1>Qualidade de Horários</h1>
+    {% if schedules %}
+            {% for schedule in schedules %}
+                <h3>{{ schedule.name }}</h3>
+                {% if schedule.overcrowded is not None %}
+                    <p>Sobrelotação: {{ schedule.overcrowded }}</p>
+                    <p>Sobreposição: {{ schedule.overlap }}</p>
+                    <p>Sem sala: {{ schedule.no_room }}</p>
+                    <p>Características Erradas: Contra regulação de horários: {{ schedule.time_regulation }}</p>
+                    <p>{{ schedule.wrong_characteristics }}</p>
+                    <br>
+                {% else %}
+                    <p>Para conseguir visualizar a informação, por favor abra primeiro a página do horário </p>
+                {% endif %}
+            {% endfor %}
+    {%  endif  %}
+    <div id="overcrowdedMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
+    <div id="overlapMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
+    <div id="withoutRoomMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
+    <div id="timeRegulationsMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
+    <div id="characteristicsMetrics" style="margin-top: 10px; font-weight: bold; display:none;"></div>
+</body>
+</html>

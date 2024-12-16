@@ -129,12 +129,16 @@ let initialNoRoomMetrics = null;
 let initialTimeRegulationMetrics = null;
 let initialWrongCharacteristicsMetrics = null;
 let originalScheduleData = [];
+
 document.addEventListener("DOMContentLoaded", function () {
-    const scriptTag = document.querySelector('script[file-url]');
+    const scriptTag = document.querySelector('script[file-url][data-schedule-id]');
     const fileUrl = scriptTag.getAttribute('file-url');
+    const scheduleId = scriptTag.getAttribute('data-schedule-id');
+
     fetch(fileUrl)
         .then(response => response.text())
         .then(csvData => {
+            // Parse the CSV data
             Papa.parse(csvData, {
                 header: true,
                 skipEmptyLines: true,
@@ -145,14 +149,27 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
 
                     originalScheduleData = results.data;
+
                     const columns = generateColumns(results.data);
                     scheduleTable.setColumns(columns);
                     scheduleTable.setData(results.data);
+
                     initialOvercrowdMetrics = calculateOvercrowdedMetrics();
                     initialOverlapMetrics = calculateOverlapMetrics();
                     initialNoRoomMetrics = calculateNoRoomMetrics();
                     initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
                     initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
+
+                    const metrics = {
+                        overcrowded: initialOvercrowdMetrics,
+                        overlap: initialOverlapMetrics,
+                        no_room: initialNoRoomMetrics,
+                        time_regulation: initialTimeRegulationMetrics,
+                        wrong_characteristics: initialWrongCharacteristicsMetrics
+                    };
+
+                    updateMetricsOnServer(scheduleId, metrics);
+
                 },
                 error: function (error) {
                     alert("Houve um erro a ler o ficheiro.");
@@ -161,6 +178,36 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .catch(error => console.error("Erro a carregar ficheiro: ", error));
 });
+
+function updateMetricsOnServer(scheduleId, metrics) {
+    const updateUrl = `/schedule/${scheduleId}/update-metrics/`;
+console.log("Update URL:", updateUrl);
+    fetch(`/schedule/${scheduleId}/update-metrics/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken() // Ensure CSRF protection for Django
+        },
+        body: JSON.stringify(metrics)
+    })
+    .then(response => {
+        if (response.ok) {
+            console.log("Metrics updated successfully.");
+        } else {
+            console.error("Failed to update metrics on the server.");
+        }
+    })
+    .catch(error => console.error("Error sending metrics to the server: ", error));
+}
+
+/**
+ * Utility function to get the CSRF token from cookies (for Django).
+ */
+function getCsrfToken() {
+    const csrfMatch = document.cookie.match(/csrftoken=([^;]+)/);
+    return csrfMatch ? csrfMatch[1] : null;
+}
+
 
 
 document.addEventListener("DOMContentLoaded", function () {

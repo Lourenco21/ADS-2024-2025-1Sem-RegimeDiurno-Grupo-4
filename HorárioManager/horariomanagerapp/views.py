@@ -143,3 +143,29 @@ def update_characteristics_file(request, characteristics_id):
     return JsonResponse({"success": False, "message": "Invalid request method."}, status=405)
 
 
+def dashboard(request):
+    schedules = Schedule.objects.all()
+    return render(request, 'dashboard.html', {'schedules': schedules})
+
+
+@csrf_exempt
+def update_metrics(request, schedule_id):
+    if request.method == 'POST':
+        try:
+            schedule = Schedule.objects.get(pk=schedule_id)
+            data = json.loads(request.body)
+
+            # Update metrics
+            schedule.overcrowded = data.get('overcrowded', schedule.overcrowded)
+            schedule.overlap = data.get('overlap', schedule.overlap)
+            schedule.no_room = data.get('no_room', schedule.no_room)
+            schedule.time_regulation = data.get('time_regulation', schedule.time_regulation)
+            schedule.wrong_characteristics = data.get('wrong_characteristics', schedule.wrong_characteristics)
+            schedule.save()
+
+            return JsonResponse({'status': 'success', 'message': 'Metrics updated successfully.'})
+        except Schedule.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Schedule not found.'}, status=404)
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON.'}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)

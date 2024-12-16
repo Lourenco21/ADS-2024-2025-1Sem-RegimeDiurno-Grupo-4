@@ -11,4 +11,6 @@ urlpatterns = [
     path('update-schedule/<int:schedule_id>/', views.update_schedule_file, name='update_schedule_file'),
     path('characteristics/<int:characteristics_id>/', views.characteristics_detail, name='characteristics_detail'),
     path('update-characteristics/<int:characteristics_id>/', views.update_characteristics_file, name='update_characteristics_file'),
+    path('dashboard/', views.dashboard, name='dashboard'),
+    path('schedule/<int:schedule_id>/update-metrics/', views.update_metrics, name='update_metrics'),
 ]
