@@ -224,3 +224,53 @@ document.getElementById("saveChangesButton").addEventListener("click", function 
     link.click();
     URL.revokeObjectURL(url);
 });
+
+let isReverting = false;
+
+characteristicsTable.on("cellEdited", function(cell) {
+    if (isReverting) return;
+
+    const table = cell.getTable();
+    const field = cell.getColumn().getField();
+    const rowData = cell.getRow().getData();
+    const columns = table.getColumns();
+    const colIndex = columns.findIndex(col => col.getField() === field);
+
+    const value = cell.getValue();
+    const oldValue = cell.getOldValue();
+
+    if (["Capacidade Normal", "Capacidade Exame", "Nº características"].includes(field)) {
+        if (isNaN(value) || value < 0 || !Number.isInteger(Number(value))) {
+            alert("Erro: Apenas números inteiros positivos são permitidos.");
+            isReverting = true;
+            cell.setValue(oldValue);
+            isReverting = false;
+            return;
+        }
+    }
+    if (colIndex > 4) {
+        if (value !== "X" && value !== "") {
+            alert('Erro: Apenas a letra "X" é permitida nestas colunas.');
+            isReverting = true;
+            cell.setValue(oldValue);
+            isReverting = false;
+            return;
+        }
+        const xCount = columns
+            .slice(5)
+            .map(col => col.getField())
+            .map(field => rowData[field])
+            .filter(val => val === "X").length;
+
+        const maxAllowedX = rowData["Nº características"] || 0;
+        if (xCount > maxAllowedX) {
+            alert(
+                `Erro: O número de "X" (${xCount}) não pode exceder o valor de "Nº características" (${maxAllowedX}).`
+            );
+            isReverting = true;
+            cell.setValue(oldValue);
+            isReverting = false;
+            return;
+        }
+        }
+    });
