@@ -3,9 +3,9 @@ const characteristicsTableHide = document.getElementById('characteristics-table'
 const characteristicsH2Hide = document.getElementById('characteristics-h2');
 
 toggleButton.addEventListener('click', () => {
-    if(characteristicsTable.getData().length === 0){
+    if (characteristicsTable.getData().length === 0) {
         alert("Nenhum ficheiro de características selecionado.")
-    }else {
+    } else {
         if (characteristicsTableHide.style.display === 'none' || characteristicsTableHide.style.display === '') {
             characteristicsTableHide.style.display = 'block';
             toggleButton.textContent = 'Esconder tabela de características';
@@ -20,73 +20,74 @@ toggleButton.addEventListener('click', () => {
 });
 
 function getMatchingRooms(rowData) {
-    if(characteristicsTable.getData().length === 0)
+    if (characteristicsTable.getData().length === 0)
         alert("Selecione um ficheiro de Características de Salas de Aula")
     else {
-    const requestedFeatures = rowData["Características da sala pedida para a aula"]
-        ? rowData["Características da sala pedida para a aula"]
-              .toLowerCase()
-              .trim()
-              .split(",")
-        : [];
-    const requiredCapacity = parseInt(rowData["Inscritos no turno"], 10) || 0;
+        const requestedFeatures = rowData["Características da sala pedida para a aula"]
+            ? rowData["Características da sala pedida para a aula"]
+                .toLowerCase()
+                .trim()
+                .split(",")
+            : [];
+        const requiredCapacity = parseInt(rowData["Inscritos no turno"], 10) || 0;
 
-    if (!requestedFeatures.length || requestedFeatures[0] === "não necessita de sala") {
-        return [];
-    }
+        if (!requestedFeatures.length || requestedFeatures[0] === "não necessita de sala") {
+            return [];
+        }
 
-    if (requestedFeatures.includes("sala/anfiteatro aulas")) {
-        requestedFeatures.push("sala de aulas normal", "anfiteatro aulas");
-    }
-    if (requestedFeatures.includes("lab ista")) {
-        requestedFeatures.push("laboratório de arquitectura de computadores i", "laboratório de arquitectura de computadores ii",
-            "laboratório de bases de engenharia", "laboratório de eletrónica", "laboratório de telecomunicações", "laboratório de informática",
-            "laboratório de redes de computadores i", "laboratório de redes de computadores ii");
-    }
+        if (requestedFeatures.includes("sala/anfiteatro aulas")) {
+            requestedFeatures.push("sala de aulas normal", "anfiteatro aulas");
+        }
+        if (requestedFeatures.includes("lab ista")) {
+            requestedFeatures.push("laboratório de arquitectura de computadores i", "laboratório de arquitectura de computadores ii",
+                "laboratório de bases de engenharia", "laboratório de eletrónica", "laboratório de telecomunicações", "laboratório de informática",
+                "laboratório de redes de computadores i", "laboratório de redes de computadores ii");
+        }
 
 
-    const roomData = characteristicsTable.getData();
-    const classDate = rowData["Dia"];
-    const classStart = rowData["Início"];
-    const classEnd = rowData["Fim"];
-    const scheduleData = scheduleTable.getData();
-    const groupedSchedule = scheduleData.reduce((acc, scheduleRow) => {
-        const key = `${scheduleRow["Sala da aula"].trim()}_${scheduleRow["Dia"].trim()}`;
-        if (!acc[key]) acc[key] = [];
-        acc[key].push({
-            start: scheduleRow["Início"],
-            end: scheduleRow["Fim"]
-        });
-        return acc;
-    }, {});
-    const matchingRooms = roomData.filter(room => {
-        const actualFeatures = Object.keys(room)
-            .filter(col => col !== "Horário sala visível portal público" && room[col] === "X")
-            .map(col => col.replace("Características reais da sala", "").trim().toLowerCase());
+        const roomData = characteristicsTable.getData();
+        const classDate = rowData["Dia"];
+        const classStart = rowData["Início"];
+        const classEnd = rowData["Fim"];
+        const scheduleData = scheduleTable.getData();
+        const groupedSchedule = scheduleData.reduce((acc, scheduleRow) => {
+            const key = `${scheduleRow["Sala da aula"].trim()}_${scheduleRow["Dia"].trim()}`;
+            if (!acc[key]) acc[key] = [];
+            acc[key].push({
+                start: scheduleRow["Início"],
+                end: scheduleRow["Fim"]
+            });
+            return acc;
+        }, {});
+        const matchingRooms = roomData.filter(room => {
+            const actualFeatures = Object.keys(room)
+                .filter(col => col !== "Horário sala visível portal público" && room[col] === "X")
+                .map(col => col.replace("Características reais da sala", "").trim().toLowerCase());
 
-        const roomCapacity = parseInt(room["Capacidade Normal"], 10) || 0;
-        const roomName = room["Nome sala"];
-        const hasMatchingFeature = requestedFeatures.some(requestedFeature =>
-            actualFeatures.some(actualFeature =>
-                actualFeature.includes(requestedFeature.trim().toLowerCase())
-            )
-        );
-        const meetsCapacity = roomCapacity >= requiredCapacity;
-        const roomKey = `${roomName.trim()}_${classDate.trim()}`;
-        const scheduledTimes = groupedSchedule[roomKey] || [];
-        const isRoomAvailable = !scheduledTimes.some(({ start, end }) => {
-            return (
-                (classStart >= start && classStart < end) ||
-                (classEnd > start && classEnd <= end) ||
-                (classStart <= start && classEnd >= end)
+            const roomCapacity = parseInt(room["Capacidade Normal"], 10) || 0;
+            const roomName = room["Nome sala"];
+            const hasMatchingFeature = requestedFeatures.some(requestedFeature =>
+                actualFeatures.some(actualFeature =>
+                    actualFeature.includes(requestedFeature.trim().toLowerCase())
+                )
             );
+            const meetsCapacity = roomCapacity >= requiredCapacity;
+            const roomKey = `${roomName.trim()}_${classDate.trim()}`;
+            const scheduledTimes = groupedSchedule[roomKey] || [];
+            const isRoomAvailable = !scheduledTimes.some(({start, end}) => {
+                return (
+                    (classStart >= start && classStart < end) ||
+                    (classEnd > start && classEnd <= end) ||
+                    (classStart <= start && classEnd >= end)
+                );
+            });
+            return hasMatchingFeature && meetsCapacity && isRoomAvailable;
         });
-        return hasMatchingFeature && meetsCapacity && isRoomAvailable;
-    });
 
-    return matchingRooms.map(room => room["Nome sala"]);
+        return matchingRooms.map(room => room["Nome sala"]);
     }
 }
+
 window.scheduleTable = new Tabulator("#schedule-table", {
     layout: "fitDataFill",
     height: 600,
@@ -97,7 +98,7 @@ window.scheduleTable = new Tabulator("#schedule-table", {
     paginationCounter: "rows",
     placeholder: "À espera de dados, por favor carregue um ficheiro",
     tooltips: true,
-    cellEdited: function(cell) {
+    cellEdited: function (cell) {
         const updatedOvercrowdedMetrics = calculateOvercrowdedMetrics();
         const updatedOverlapMetrics = calculateOverlapMetrics();
         const updatedNoRoomMetrics = calculateNoRoomMetrics();
@@ -180,7 +181,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 function updateMetricsOnServer(scheduleId, metrics) {
     const updateUrl = `/schedule/${scheduleId}/update-metrics/`;
-console.log("Update URL:", updateUrl);
+    console.log("Update URL:", updateUrl);
     fetch(`/schedule/${scheduleId}/update-metrics/`, {
         method: 'POST',
         headers: {
@@ -189,14 +190,14 @@ console.log("Update URL:", updateUrl);
         },
         body: JSON.stringify(metrics)
     })
-    .then(response => {
-        if (response.ok) {
-            console.log("Metrics updated successfully.");
-        } else {
-            console.error("Failed to update metrics on the server.");
-        }
-    })
-    .catch(error => console.error("Error sending metrics to the server: ", error));
+        .then(response => {
+            if (response.ok) {
+                console.log("Metrics updated successfully.");
+            } else {
+                console.error("Failed to update metrics on the server.");
+            }
+        })
+        .catch(error => console.error("Error sending metrics to the server: ", error));
 }
 
 /**
@@ -208,38 +209,37 @@ function getCsrfToken() {
 }
 
 
-
 document.addEventListener("DOMContentLoaded", function () {
     const scriptTag = document.querySelector('script[characteristics-url]');
     const fileUrl = scriptTag.getAttribute('characteristics-url');
-    fetch (fileUrl)
+    fetch(fileUrl)
         .then(response => response.text())
         .then(csvData => {
 
-        Papa.parse(csvData, {
-            header: true,
-            skipEmptyLines: true,
-            complete: function (results) {
+            Papa.parse(csvData, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function (results) {
 
-                if (results.data.length === 0) {
-                    alert("Ficheiro CSV inválido.");
-                    return;
-                }
+                    if (results.data.length === 0) {
+                        alert("Ficheiro CSV inválido.");
+                        return;
+                    }
 
-                const columns = generateColumns(results.data);
+                    const columns = generateColumns(results.data);
 
-                columns.forEach(column => {
-                column.editable = false;
+                    columns.forEach(column => {
+                        column.editable = false;
                     });
-                characteristicsTable.setColumns(columns);
-                characteristicsTable.setData(results.data);
-            },
-            error: function (error) {
-                alert("Houve um erro a ler o ficheiro.");
-            },
-        });
+                    characteristicsTable.setColumns(columns);
+                    characteristicsTable.setData(results.data);
+                },
+                error: function (error) {
+                    alert("Houve um erro a ler o ficheiro.");
+                },
+            });
 
-    })
+        })
         .catch(error => console.error("Erro a carregar ficheiro: ", error));
 });
 
@@ -262,45 +262,45 @@ function generateColumns(data) {
             "Características reais da sala",
             "Dia da Semana"
         ];
-                if (field === "Sala da aula") {
-                return {
-                        title: field.charAt(0).toUpperCase() + field.slice(1),
-                        field: field,
-                        headerMenu: headerMenu,
-                        headerFilter: "input",
-                        headerFilterPlaceholder: "Search...",
-                        headerWordWrap: true,
-                        editor: "list",
-                        editorParams: function (cell) {
-                            const rowData = cell.getRow().getData();
-                            const matchingRooms = getMatchingRooms(rowData);
-                            const roomOptions = matchingRooms.length > 0 ? matchingRooms : ["Não há salas disponiveis"];
-                            roomOptions.unshift("Sem sala");
-                            return {
-                                values: roomOptions
-                            };
-                        }
+        if (field === "Sala da aula") {
+            return {
+                title: field.charAt(0).toUpperCase() + field.slice(1),
+                field: field,
+                headerMenu: headerMenu,
+                headerFilter: "input",
+                headerFilterPlaceholder: "Search...",
+                headerWordWrap: true,
+                editor: "list",
+                editorParams: function (cell) {
+                    const rowData = cell.getRow().getData();
+                    const matchingRooms = getMatchingRooms(rowData);
+                    const roomOptions = matchingRooms.length > 0 ? matchingRooms : ["Não há salas disponiveis"];
+                    roomOptions.unshift("Sem sala");
+                    return {
+                        values: roomOptions
                     };
                 }
-                if (field === "Características da sala pedida para a aula") {
-                return {
-                    title: field.charAt(0).toUpperCase() + field.slice(1),
-                    field: field,
-                    headerMenu: headerMenu,
-                    headerFilter: "input",
-                    headerFilterPlaceholder: "Search...",
-                    headerWordWrap: true,
-                    editor: characteristicsTable.getData().length === 0 ? false : "list",
-                    editorParams: function () {
-                        const characteristics = getCharacteristics();
-                        return {
-                            values: characteristics.length > 0
-                                ? ["Nenhuma característica", ...characteristics]
-                                : ["Sem características disponíveis"]
-                        };
-                    }
-                };
-            }
+            };
+        }
+        if (field === "Características da sala pedida para a aula") {
+            return {
+                title: field.charAt(0).toUpperCase() + field.slice(1),
+                field: field,
+                headerMenu: headerMenu,
+                headerFilter: "input",
+                headerFilterPlaceholder: "Search...",
+                headerWordWrap: true,
+                editor: characteristicsTable.getData().length === 0 ? false : "list",
+                editorParams: function () {
+                    const characteristics = getCharacteristics();
+                    return {
+                        values: characteristics.length > 0
+                            ? ["Nenhuma característica", ...characteristics]
+                            : ["Sem características disponíveis"]
+                    };
+                }
+            };
+        }
         return {
             title: field.charAt(0).toUpperCase() + field.slice(1),
             field: field,
@@ -312,6 +312,7 @@ function generateColumns(data) {
         };
     });
 }
+
 characteristicsTable.on("dataProcessed", function () {
     onCharacteristicsTableLoaded();
 });
@@ -336,6 +337,7 @@ function onCharacteristicsTableLoaded() {
 
     scheduleTable.redraw();
 }
+
 var headerMenu = function () {
     var menu = [];
     var columns = this.getColumns();
@@ -403,31 +405,30 @@ document.getElementById("overcrowdedFilterButton").addEventListener("click", fun
     });
 
 
-
     const overcrowdedPercentage = totalClasses > 0 ? ((overcrowdedClasses / totalClasses) * 100).toFixed(2) : 0;
 
     let metricDisplay = document.getElementById("overcrowdedMetrics");
-        if (!metricDisplay) {
-            metricDisplay = document.createElement("div");
-            metricDisplay.id = "overcrowdedMetrics";
-            metricDisplay.style.marginTop = "10px";
-            metricDisplay.style.fontWeight = "bold";
-            metricDisplay.style.display = "block";
-            document.getElementById("overcrowdedFilterButton").insertAdjacentElement("afterend", metricDisplay);
-        }
-        metricDisplay.innerHTML = `
+    if (!metricDisplay) {
+        metricDisplay = document.createElement("div");
+        metricDisplay.id = "overcrowdedMetrics";
+        metricDisplay.style.marginTop = "10px";
+        metricDisplay.style.fontWeight = "bold";
+        metricDisplay.style.display = "block";
+        document.getElementById("overcrowdedFilterButton").insertAdjacentElement("afterend", metricDisplay);
+    }
+    metricDisplay.innerHTML = `
             <p>Total de aulas: ${totalClasses}</p>
             <p>Aulas sobrelotadas: ${overcrowdedClasses}</p>
             <p>Percentagem de superlotação: ${overcrowdedPercentage}%</p>
         `;
 
-        metricDisplay.style.display = "block";
+    metricDisplay.style.display = "block";
 
-        initialOvercrowdMetrics = totalClasses > 0 ? ((overcrowdedClasses / totalClasses) * 100) : 0;
-        initialOverlapMetrics = calculateOverlapMetrics();
-        initialNoRoomMetrics = calculateNoRoomMetrics();
-        initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
-        initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
+    initialOvercrowdMetrics = totalClasses > 0 ? ((overcrowdedClasses / totalClasses) * 100) : 0;
+    initialOverlapMetrics = calculateOverlapMetrics();
+    initialNoRoomMetrics = calculateNoRoomMetrics();
+    initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
+    initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
 
 });
 
@@ -510,49 +511,49 @@ document.getElementById("overlapFilterButton").addEventListener("click", functio
                 }
             }
         }
-});
-scheduleTable.setFilter((row) => {
-
-    const rowStart = parseTime(row["Início"]);
-    const rowEnd = parseTime(row["Fim"]);
-    const rowKey = `${row["Sala da aula"].trim()}_${row["Dia"].trim()}`;
-
-    return overlaps.some(overlapRow => {
-        if (overlapRow._key === rowKey) {
-            return (
-                (rowStart < overlapRow._end && rowStart >= overlapRow._start) ||
-                (overlapRow._start < rowEnd && overlapRow._start >= rowStart)
-            );
-        }
-        return false;
     });
-});
+    scheduleTable.setFilter((row) => {
+
+        const rowStart = parseTime(row["Início"]);
+        const rowEnd = parseTime(row["Fim"]);
+        const rowKey = `${row["Sala da aula"].trim()}_${row["Dia"].trim()}`;
+
+        return overlaps.some(overlapRow => {
+            if (overlapRow._key === rowKey) {
+                return (
+                    (rowStart < overlapRow._end && rowStart >= overlapRow._start) ||
+                    (overlapRow._start < rowEnd && overlapRow._start >= rowStart)
+                );
+            }
+            return false;
+        });
+    });
 
 
     const overlapPercentage = totalClasses > 0 ? ((overlapClasses / totalClasses) * 100).toFixed(2) : 0;
 
     let metricDisplay = document.getElementById("overlapMetrics");
-        if (!metricDisplay) {
-            metricDisplay = document.createElement("div");
-            metricDisplay.id = "overcrowdedMetrics";
-            metricDisplay.style.marginTop = "10px";
-            metricDisplay.style.fontWeight = "bold";
-            document.getElementById("overcrowdedFilterButton").insertAdjacentElement("afterend", metricDisplay);
-        }
+    if (!metricDisplay) {
+        metricDisplay = document.createElement("div");
+        metricDisplay.id = "overcrowdedMetrics";
+        metricDisplay.style.marginTop = "10px";
+        metricDisplay.style.fontWeight = "bold";
+        document.getElementById("overcrowdedFilterButton").insertAdjacentElement("afterend", metricDisplay);
+    }
 
-        metricDisplay.innerHTML = `
+    metricDisplay.innerHTML = `
             <p>Total de aulas: ${totalClasses}</p>
             <p>Aulas sobrepostas: ${overlapClasses}</p>
             <p>Percentagem de sobreposição: ${overlapPercentage}%</p>
         `;
 
-        metricDisplay.style.display = "block";
+    metricDisplay.style.display = "block";
 
-        initialOvercrowdMetrics = calculateOvercrowdedMetrics();
-        initialOverlapMetrics = totalClasses > 0 ? ((overlapClasses / totalClasses) * 100) : 0;
-        initialNoRoomMetrics = calculateNoRoomMetrics();
-        initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
-        initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
+    initialOvercrowdMetrics = calculateOvercrowdedMetrics();
+    initialOverlapMetrics = totalClasses > 0 ? ((overlapClasses / totalClasses) * 100) : 0;
+    initialNoRoomMetrics = calculateNoRoomMetrics();
+    initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
+    initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
 
 });
 
@@ -691,6 +692,47 @@ function closePopup() {
     }
 }
 
+const popup = document.getElementById("recommendationsPopup");
+const recommendationOptions = document.getElementById("recommended-dates-list");
+const cancelButton = document.getElementById("popup-close-btn");
+
+function displayRecommendationsPopup(recommendedDates, scheduleRow) {
+
+    recommendationOptions.innerHTML = "";
+    recommendedDates.forEach(date => {
+        const listItem = document.createElement("li");
+        listItem.textContent = `${date.date} - Início: ${date.startTime} - Fim: ${date.endTime}`;
+
+        listItem.onclick = function () {
+
+            const [day, month, year] = date.date.split("/");
+
+            scheduleRow.update({
+                "Dia": `${day}/${month}/${year}`,
+                "Início": date.startTime,
+                "Fim": date.endTime,
+                "Dia da Semana": getDayOfWeekName(new Date(year, month - 1, day))
+            });
+            hideRecommendationsPopup();
+        };
+        recommendationOptions.appendChild(listItem);
+    });
+    popup.style.display = "flex";
+}
+
+function getDayOfWeekName(date) {
+    const dayOfWeekMapping = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
+    return dayOfWeekMapping[date.getDay()];
+}
+
+function hideRecommendationsPopup() {
+    popup.style.display = "none";
+}
+
+cancelButton.onclick = function () {
+    hideRecommendationsPopup();
+};
+
 
 function showMetricBalance(initialOvercrowd, updatedOvercrowd, initialOverlap, updatedOverlap, initialNoRoom, updatedNoRoom, initialFailRegulation, updatedFailRegulation, initialWrongCharacteristics, updatedWrongCharacteristics) {
     let balanceDisplay = document.getElementById("metricBalance");
@@ -715,29 +757,29 @@ function showMetricBalance(initialOvercrowd, updatedOvercrowd, initialOverlap, u
     const failRegulationPercentageDiff = (updatedFailRegulation - initialFailRegulation);
     const wrongCharacteristicsPercentageDiff = (updatedWrongCharacteristics - initialWrongCharacteristics);
 
-    if(overcrowdedPercentageDiff < 0)
+    if (overcrowdedPercentageDiff < 0)
         overcrowdedResult = "Improved Quality"
-    else if(overcrowdedPercentageDiff > 0)
+    else if (overcrowdedPercentageDiff > 0)
         overcrowdedResult = "Decreased Quality"
 
-    if(overlapPercentageDiff < 0)
+    if (overlapPercentageDiff < 0)
         overlapResult = "Improved Quality"
-    else if(overlapPercentageDiff > 0)
+    else if (overlapPercentageDiff > 0)
         overlapResult = "Decreased Quality"
 
-    if(noRoomPercentageDiff < 0)
+    if (noRoomPercentageDiff < 0)
         noRoomResult = "Improved Quality"
-    else if(noRoomPercentageDiff > 0)
+    else if (noRoomPercentageDiff > 0)
         noRoomResult = "Decreased Quality"
 
-    if(failRegulationPercentageDiff < 0)
+    if (failRegulationPercentageDiff < 0)
         failRegulationResult = "Improved Quality"
-    else if(failRegulationPercentageDiff > 0)
+    else if (failRegulationPercentageDiff > 0)
         failRegulationResult = "Decreased Quality"
 
-    if(wrongCharacteristicsPercentageDiff < 0)
+    if (wrongCharacteristicsPercentageDiff < 0)
         wrongCharacteristicsResult = "Improved Quality"
-    else if(wrongCharacteristicsPercentageDiff > 0)
+    else if (wrongCharacteristicsPercentageDiff > 0)
         wrongCharacteristicsResult = "Decreased Quality"
 
     balanceDisplay.innerHTML = `
@@ -772,16 +814,14 @@ function resetFiltersAndMetrics() {
     initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
 
 }
+
 document.getElementById("resetFilterButton").addEventListener("click", function () {
     resetFiltersAndMetrics();
 });
 
-scheduleTable.on("cellDblClick", function(e, cell) {
-       cell.edit();
+scheduleTable.on("cellDblClick", function (e, cell) {
+    cell.edit();
 });
-
-
-
 
 
 document.getElementById("classWithoutRoomButton").addEventListener("click", function () {
@@ -821,22 +861,21 @@ document.getElementById("classWithoutRoomButton").addEventListener("click", func
     const classesWithoutRoomPercentage = totalClasses > 0 ? ((classesWithoutRoom / totalClasses) * 100).toFixed(2) : 0;
 
     let metricDisplay = document.getElementById("withoutRoomMetrics");
-        if (!metricDisplay) {
-            metricDisplay = document.createElement("div");
-            metricDisplay.id = "overcrowdedMetrics";
-            metricDisplay.style.marginTop = "10px";
-            metricDisplay.style.fontWeight = "bold";
-            metricDisplay.style.display = "block";
-            document.getElementById("overcrowdedFilterButton").insertAdjacentElement("afterend", metricDisplay);
-        }
-        metricDisplay.innerHTML = `
+    if (!metricDisplay) {
+        metricDisplay = document.createElement("div");
+        metricDisplay.id = "overcrowdedMetrics";
+        metricDisplay.style.marginTop = "10px";
+        metricDisplay.style.fontWeight = "bold";
+        metricDisplay.style.display = "block";
+        document.getElementById("overcrowdedFilterButton").insertAdjacentElement("afterend", metricDisplay);
+    }
+    metricDisplay.innerHTML = `
             <p>Total de aulas: ${totalClasses}</p>
             <p>Aulas sem sala: ${classesWithoutRoom}</p>
             <p>Percentagem de aulas sem sala: ${classesWithoutRoomPercentage}%</p>
         `;
 
-        metricDisplay.style.display = "block";
-
+    metricDisplay.style.display = "block";
 
 
     initialOvercrowdMetrics = calculateOvercrowdedMetrics();
@@ -893,21 +932,21 @@ document.getElementById("timeRegulationsButton").addEventListener("click", funct
     const regulationFailPercentage = totalClasses > 0 ? ((filteredClasses / totalClasses) * 100).toFixed(2) : 0;
 
     let metricDisplay = document.getElementById("timeRegulationsMetrics");
-        if (!metricDisplay) {
-            metricDisplay = document.createElement("div");
-            metricDisplay.id = "overcrowdedMetrics";
-            metricDisplay.style.marginTop = "10px";
-            metricDisplay.style.fontWeight = "bold";
-            metricDisplay.style.display = "block";
-            document.getElementById("overcrowdedFilterButton").insertAdjacentElement("afterend", metricDisplay);
-        }
-        metricDisplay.innerHTML = `
+    if (!metricDisplay) {
+        metricDisplay = document.createElement("div");
+        metricDisplay.id = "overcrowdedMetrics";
+        metricDisplay.style.marginTop = "10px";
+        metricDisplay.style.fontWeight = "bold";
+        metricDisplay.style.display = "block";
+        document.getElementById("overcrowdedFilterButton").insertAdjacentElement("afterend", metricDisplay);
+    }
+    metricDisplay.innerHTML = `
             <p>Total de aulas: ${totalClasses}</p>
             <p>Aulas que não cumprem regulamentos: ${filteredClasses}</p>
             <p>Percentagem de superlotação: ${regulationFailPercentage}%</p>
         `;
 
-        metricDisplay.style.display = "block";
+    metricDisplay.style.display = "block";
 
     initialOvercrowdMetrics = calculateOvercrowdedMetrics();
     initialOverlapMetrics = calculateOverlapMetrics();
@@ -949,7 +988,7 @@ document.getElementById("matchingCharacteristicsButton").addEventListener("click
         const matches = requestedFeatures.some(requestedFeature =>
             actualFeatures.some(actualFeature => actualFeature.toLowerCase().includes(requestedFeature.trim()))
         );
-        if(!matches)
+        if (!matches)
             filteredClasses++;
 
         return !matches;
@@ -958,32 +997,32 @@ document.getElementById("matchingCharacteristicsButton").addEventListener("click
     const wrongCharacteristicsPercentage = totalClasses > 0 ? ((filteredClasses / totalClasses) * 100).toFixed(2) : 0;
 
     let metricDisplay = document.getElementById("characteristicsMetrics");
-        if (!metricDisplay) {
-            metricDisplay = document.createElement("div");
-            metricDisplay.id = "overcrowdedMetrics";
-            metricDisplay.style.marginTop = "10px";
-            metricDisplay.style.fontWeight = "bold";
-            metricDisplay.style.display = "block";
-            document.getElementById("overcrowdedFilterButton").insertAdjacentElement("afterend", metricDisplay);
-        }
+    if (!metricDisplay) {
+        metricDisplay = document.createElement("div");
+        metricDisplay.id = "overcrowdedMetrics";
+        metricDisplay.style.marginTop = "10px";
+        metricDisplay.style.fontWeight = "bold";
+        metricDisplay.style.display = "block";
+        document.getElementById("overcrowdedFilterButton").insertAdjacentElement("afterend", metricDisplay);
+    }
 
-        metricDisplay.innerHTML = `
+    metricDisplay.innerHTML = `
             <p>Total de aulas: ${totalClasses}</p>
             <p>Aulas que não cumprem regulamentos: ${filteredClasses}</p>
             <p>Percentagem de superlotação: ${wrongCharacteristicsPercentage}%</p>
         `;
 
-        metricDisplay.style.display = "block";
+    metricDisplay.style.display = "block";
 
-        initialOvercrowdMetrics = calculateOvercrowdedMetrics();
-        initialOverlapMetrics = calculateOverlapMetrics();
-        initialNoRoomMetrics = calculateNoRoomMetrics();
-        initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
-        initialWrongCharacteristicsMetrics = totalClasses > 0 ? ((filteredClasses / totalClasses) * 100) : 0;
+    initialOvercrowdMetrics = calculateOvercrowdedMetrics();
+    initialOverlapMetrics = calculateOverlapMetrics();
+    initialNoRoomMetrics = calculateNoRoomMetrics();
+    initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
+    initialWrongCharacteristicsMetrics = totalClasses > 0 ? ((filteredClasses / totalClasses) * 100) : 0;
 
 });
 
-function calculateMatchingCharacteristicsMetrics(){
+function calculateMatchingCharacteristicsMetrics() {
 
 
     const scheduleData = scheduleTable.getData();
@@ -1015,7 +1054,7 @@ function calculateMatchingCharacteristicsMetrics(){
             actualFeatures.some(actualFeature => actualFeature.toLowerCase().includes(requestedFeature.trim()))
         );
 
-        if(!matches)
+        if (!matches)
             classesWithoutMatchingCharacteristics++;
 
         return !matches;
@@ -1026,7 +1065,7 @@ function calculateMatchingCharacteristicsMetrics(){
     return wrongCharacteristicsPercentage;
 }
 
-function calculateNoRoomMetrics(){
+function calculateNoRoomMetrics() {
     const scheduleData = scheduleTable.getData();
 
     let totalClasses = scheduleData.length;
@@ -1059,7 +1098,7 @@ function calculateNoRoomMetrics(){
 
 }
 
-function calculateTimeRegulationMetrics(){
+function calculateTimeRegulationMetrics() {
 
     const scheduleData = scheduleTable.getData();
 
@@ -1122,17 +1161,17 @@ function getRoomCharacteristics(roomName) {
 scheduleTable.on("cellEdited", function (cell) {
 
     if (cell.getColumn().getField() === "Inscritos no turno") {
-            const value = cell.getValue();
-            if (isNaN(value) || value < 0 || !Number.isInteger(Number(value))) {
-                alert("Erro: Apenas números inteiros positivos são permitidos.");
-                cell.setValue(cell.getOldValue());
+        const value = cell.getValue();
+        if (isNaN(value) || value < 0 || !Number.isInteger(Number(value))) {
+            alert("Erro: Apenas números inteiros positivos são permitidos.");
+            cell.setValue(cell.getOldValue());
 
-            }
         }
+    }
 
     if (cell.getValue() === "Nenhuma característica") {
-                        cell.setValue("");
-                    }
+        cell.setValue("");
+    }
 
     const row = cell.getRow();
 
@@ -1194,53 +1233,64 @@ scheduleTable.on("cellEdited", function (cell) {
             return false;
         });
         if (!isRoomAvailable) {
-            alert("Erro: A sala não está disponível para o novo dia e horário.");
-            cell.setValue(originalDate);
-            return;
+            const userWantsRecommendation = confirm("A sala não está disponível para o novo dia e horário. Deseja que recomendemos um novo dia para a aula?");
+            if (userWantsRecommendation) {
+                cell.setValue(originalDate);
+                const recommendedDates = recommendAlternativeDates(row.getData());
+                if (recommendedDates.length > 0) {
+                    displayRecommendationsPopup(recommendedDates, row);
+                } else {
+                    alert("Não há alternativas disponíveis.");
+                }
+                return;
+            } else {
+                cell.setValue(originalDate);
+                return;
+            }
+
         }
         const dayOfWeekMapping = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
         const dayOfWeekName = dayOfWeekMapping[dayOfWeek];
-        row.update({ "Dia da Semana": dayOfWeekName });
+        row.update({"Dia da Semana": dayOfWeekName});
     }
 
 
-
     if (cell.getColumn().getField() === "Sala da aula") {
-            const originalValue = cell.getOldValue();
-            const roomName = cell.getValue();
-            const row = cell.getRow();
+        const originalValue = cell.getOldValue();
+        const roomName = cell.getValue();
+        const row = cell.getRow();
 
-            if (roomName === "Sem sala") {
+        if (roomName === "Sem sala") {
 
+            row.update({
+                "Sala da aula": "",
+                "Lotação": "",
+                "Características reais da sala": ""
+            });
+            return;
+        }
+        if (roomName) {
+            const roomCharacteristics = getRoomCharacteristics(roomName);
+
+            if (roomCharacteristics) {
                 row.update({
-                    "Sala da aula": "",
-                    "Lotação": "",
-                    "Características reais da sala": ""
+                    "Lotação": roomCharacteristics.capacity,
+                    "Características reais da sala": roomCharacteristics.features
                 });
-                return;
-            }
-            if (roomName) {
-                const roomCharacteristics = getRoomCharacteristics(roomName);
+            } else {
 
-                if (roomCharacteristics) {
-                    row.update({
-                        "Lotação": roomCharacteristics.capacity,
-                        "Características reais da sala": roomCharacteristics.features
-                    });
-                } else {
-
-                    alert("Não há opções de Sala. Irá ficar com a sala atual.");
-                    cell.setValue(originalValue);
-                }
-            }
-            if (!roomName) {
+                alert("Não há opções de Sala. Irá ficar com a sala atual.");
                 cell.setValue(originalValue);
-                const characteristics = getRoomCharacteristics(originalValue)
-                row.update({
-                    "Lotação": characteristics.capacity,
-                    "Características reais da sala": characteristics.features
-                });
             }
+        }
+        if (!roomName) {
+            cell.setValue(originalValue);
+            const characteristics = getRoomCharacteristics(originalValue)
+            row.update({
+                "Lotação": characteristics.capacity,
+                "Características reais da sala": characteristics.features
+            });
+        }
     }
     const updatedOvercrowdedMetrics = calculateOvercrowdedMetrics();
     const updatedOverlapMetrics = calculateOverlapMetrics();
@@ -1260,6 +1310,135 @@ scheduleTable.on("cellEdited", function (cell) {
     initialTimeRegulationMetrics = updatedTimeRegulationMetrics;
     initialWrongCharacteristicsMetrics = updatedWrongCharacteristicsMetrics;
 });
+
+function recommendAlternativeDates(scheduleRow) {
+    const allScheduleData = scheduleTable.getData();
+    const room = scheduleRow["Sala da aula"];
+    const date = scheduleRow["Dia"];
+    const startTime = scheduleRow["Início"];
+    const endTime = scheduleRow["Fim"];
+    const turma = scheduleRow["Turma"];
+    const courseType = turma.includes("PL") ? "Pós-laboral" : "Diurno";
+    let minStartTime, maxStartTime;
+    if (courseType === "Diurno") {
+        minStartTime = parseTime("08:00:00");
+        maxStartTime = parseTime("16:00:00");
+    } else {
+        minStartTime = parseTime("16:30:00");
+        maxStartTime = parseTime("21:00:00");
+    }
+    const startDate = parseDate(date);
+    const maxDateRange = 28;
+    const recommendedDates = [];
+    const lastFridayBeforeChristmas = getLastFridayBeforeChristmas(new Date(startDate));
+    for (let dayOffset = 1; dayOffset <= maxDateRange; dayOffset++) {
+        const [day, month, year] = parseDate(startDate).split("/").map(Number);
+        const newDate = new Date(year, month - 1, day);
+
+        newDate.setDate(newDate.getDate() + dayOffset);
+
+        const formattedDate = formatDate(newDate);
+        const dayOfWeek = newDate.getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+        if (newDate > lastFridayBeforeChristmas) break;
+        const roomSchedule = allScheduleData.filter(row => {
+            return row["Sala da aula"].trim() === room.trim() && row["Dia"].trim() === formattedDate;
+        });
+        roomSchedule.sort((a, b) => parseTime(a["Início"]) - parseTime(b["Início"]));
+        let previousEndTime = minStartTime;
+        for (const classData of roomSchedule) {
+            const currentStartTime = parseTime(classData["Início"]);
+            if (currentStartTime - previousEndTime >= parseTime(endTime) - parseTime(startTime)) {
+                const potentialStartTime = previousEndTime;
+                if (potentialStartTime >= minStartTime && potentialStartTime <= maxStartTime) {
+                    const potentialEndTime = potentialStartTime + (parseTime(endTime) - parseTime(startTime));
+                    const hasOverlap = allScheduleData.some(row => {
+                        return row["Turma"] === turma && row["Dia"].trim() === formattedDate &&
+                            timesOverlap(potentialStartTime, potentialEndTime, parseTime(row["Início"]), parseTime(row["Fim"]));
+                    });
+
+                    if (!hasOverlap) {
+                        recommendedDates.push({
+                            date: formattedDate,
+                            startTime: formatTime(potentialStartTime),
+                            endTime: formatTime(potentialEndTime),
+                        });
+                        console.log(recommendedDates);
+                        if (recommendedDates.length >= 3) return recommendedDates;
+                    }
+                }
+            }
+            previousEndTime = parseTime(classData["Fim"]);
+        }
+        const finalPotentialStartTime = previousEndTime;
+        if (
+            finalPotentialStartTime >= minStartTime &&
+            finalPotentialStartTime <= maxStartTime
+        ) {
+            const finalPotentialEndTime = finalPotentialStartTime + (parseTime(endTime) - parseTime(startTime));
+            const hasOverlap = allScheduleData.some(row => {
+                return row["Turma"] === turma && row["Dia"].trim() === formattedDate &&
+                    timesOverlap(finalPotentialStartTime, finalPotentialEndTime, parseTime(row["Início"]), parseTime(row["Fim"]));
+            });
+
+            if (!hasOverlap) {
+                recommendedDates.push({
+                    date: formattedDate,
+                    startTime: formatTime(finalPotentialStartTime),
+                    endTime: formatTime(finalPotentialEndTime),
+                });
+
+                console.log(recommendedDates);
+                if (recommendedDates.length >= 3) return recommendedDates;
+            }
+        }
+    }
+
+    console.log(recommendedDates);
+    return recommendedDates;
+}
+
+function parseTime(time) {
+    const [hours, minutes, seconds] = time.split(":").map(Number);
+    return hours * 3600 + minutes * 60 + (seconds || 0);
+}
+
+function formatTime(seconds) {
+    const hours = Math.floor(seconds / 3600).toString().padStart(2, "0");
+    const minutes = Math.floor((seconds % 3600) / 60).toString().padStart(2, "0");
+    return `${hours}:${minutes}:00`;
+}
+
+function timesOverlap(start1, end1, start2, end2) {
+    return start1 < end2 && start2 < end1;
+}
+
+function formatDate(date) {
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+function getLastFridayBeforeChristmas(startDate) {
+    const year = startDate.getFullYear();
+    const christmasEve = new Date(`${year}-12-24`);
+    const dayOfWeek = christmasEve.getDay();
+    const offset = dayOfWeek === 0 ? 2 : dayOfWeek === 6 ? 1 : dayOfWeek - 5;
+    christmasEve.setDate(christmasEve.getDate() - offset);
+    return christmasEve;
+}
+
+function parseDate(date) {
+    if (typeof date === "string") {
+        return date;
+    } else if (date instanceof Date) {
+        return formatDate(date);
+    } else {
+        throw new TypeError("Invalid date format");
+    }
+}
+
 
 function updateScheduleWithRoomCharacteristics() {
     const rows = scheduleTable.getRows();
@@ -1308,7 +1487,7 @@ function saveScheduleChanges(scheduleId) {
         return;
     }
     const csvContent = Papa.unparse(tableData);
-    const csvBlob = new Blob([csvContent], { type: "text/csv" });
+    const csvBlob = new Blob([csvContent], {type: "text/csv"});
     const fileName = "updated_schedule.csv";
     const formData = new FormData();
     formData.append("file", csvBlob, fileName);
@@ -1344,6 +1523,7 @@ function saveScheduleChanges(scheduleId) {
             alert("An error occurred while saving the file.");
         });
 }
+
 document.addEventListener("DOMContentLoaded", function () {
     const storeChangesButton = document.getElementById("storeChangesButton");
 
@@ -1378,7 +1558,7 @@ document.getElementById("saveChangesButton").addEventListener("click", function 
 
     const csvContent = Papa.unparse(modifiedData);
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([csvContent], {type: "text/csv;charset=utf-8;"});
 
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
