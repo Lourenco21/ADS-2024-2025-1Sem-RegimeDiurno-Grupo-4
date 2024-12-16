@@ -15,6 +15,7 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             padding: 20px;
             margin: 30px;
+            text-align: center;
         }
 
         .schedule-card h3 {
@@ -50,6 +51,23 @@
         .chart-container canvas {
             width: 100% !important;
             height: 100% !important;
+        }
+
+        .open-btn {
+            display: inline-block;
+            text-align: center;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #6c6c6c;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .open-btn:hover {
+            background-color: #555;
         }
     </style>
 </head>
@@ -104,6 +122,8 @@
                 {% else %}
                     <p class="no-data">Para conseguir visualizar a informação, por favor abra primeiro a página do horário.</p>
                 {% endif %}
+            <br>
+                <a href="{% url 'schedule_detail' schedule.id %}" class="open-btn">Abrir Horário</a>
             </div>
         {% endfor %}
     {% else %}

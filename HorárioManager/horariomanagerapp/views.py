@@ -9,6 +9,7 @@ from .models import Schedule, Characteristics
 from django.contrib import messages
 from django.core.files.storage import default_storage
 
+
 # Create your views here.
 
 def schedule_list(request):
@@ -101,7 +102,6 @@ def update_schedule_file(request, schedule_id):
             existing_file_name = os.path.basename(schedule.file.name)
 
             if schedule.file:
-
                 schedule.file.delete()
 
             new_file_path = f"schedules_updated/{existing_file_name}"
@@ -127,7 +127,6 @@ def update_characteristics_file(request, characteristics_id):
             existing_file_name = os.path.basename(characteristics.file.name)
 
             if characteristics.file:
-
                 characteristics.file.delete()
 
             new_file_path = f"characteristics_updated/{existing_file_name}"
@@ -155,7 +154,6 @@ def update_metrics(request, schedule_id):
             schedule = Schedule.objects.get(pk=schedule_id)
             data = json.loads(request.body)
 
-            # Update metrics
             schedule.overcrowded = data.get('overcrowded', schedule.overcrowded)
             schedule.overlap = data.get('overlap', schedule.overlap)
             schedule.no_room = data.get('no_room', schedule.no_room)
