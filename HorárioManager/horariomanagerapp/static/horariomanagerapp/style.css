@@ -445,6 +445,7 @@ button[type="submit"]:hover {
     flex: 1;
 }
 
+.form-container input[type="number"],
 .form-container input[type="time"],
 .form-container input[type="date"],
 .form-container input[type="text"],

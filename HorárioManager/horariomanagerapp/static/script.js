@@ -176,7 +176,6 @@ function addNewRow() {
         };
 
         window.scheduleTable.addRow(rowData, true, "top").then(function(row) {
-            console.log("Row added:", row);
             isInscritosChanged = false;
             isDiaChanged = false;
             isInicioChanged = false;
@@ -326,9 +325,7 @@ function populateCharacteristicsDropdown() {
 
     dropdown.innerHTML = '<option value="" disabled selected>Características pedidas</option>';
 
-    console.log(characteristics.length)
     characteristics.forEach(item => {
-        console.log("AAA")
         const option = document.createElement("option");
         option.value = item;
         option.textContent = item;
@@ -678,34 +675,39 @@ function calculateOverlapMetrics() {
     let overlapClasses = 0;
 
     if (!scheduleData.length) {
-        throw new Error("No data available. Please upload a CSV first.");
+        alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
+        return;
     }
-
     const hasRequiredColumns = scheduleData.some(row =>
         "Início" in row &&
         "Fim" in row &&
         "Sala da aula" in row &&
-        "Dia" in row
+        "Dia" in row &&
+        "Turma" in row
     );
-    if (!hasRequiredColumns) {
-        throw new Error("Missing required columns ('Início', 'Fim', 'Sala da aula', 'Dia').");
-    }
 
-    const validData = scheduleData.filter(row => row["Sala da aula"] && row["Sala da aula"].trim() !== "");
+    if (!hasRequiredColumns) {
+        alert("O ficheiro CSV não contém as colunas necessárias ('Início', 'Fim', 'Sala da aula', 'Dia', 'Turma').");
+        return;
+    }
+    const validData = scheduleData.filter(row => row["Sala da aula"]?.trim() && row["Turma"]?.trim());
 
     if (!validData.length) {
-        throw new Error("All classes have an empty 'Sala da aula'. No overlaps can be calculated.");
+        alert("Os dados não possuem 'Sala da aula' ou 'Turma' válidos. Nenhuma sobreposição será calculada.");
+        return;
     }
+
     const parseTime = (timeStr) => {
         const [hours, minutes] = timeStr.split(":").map(Number);
         return hours * 60 + minutes;
     };
-
     validData.forEach(row => {
         row._start = parseTime(row["Início"]);
         row._end = parseTime(row["Fim"]);
-        row._key = `${row["Sala da aula"].trim()}_${row["Dia"].trim()}`;
+        row._key_room = `${row["Sala da aula"].trim()}_${row["Dia"].trim()}`;
+        row._key_turma = `${row["Turma"].trim()}_${row["Dia"].trim()}`;
     });
+
     const groupBy = (data, keyFn) => {
         return data.reduce((acc, row) => {
             const key = keyFn(row);
@@ -714,41 +716,41 @@ function calculateOverlapMetrics() {
             return acc;
         }, {});
     };
+    const groupedByRoom = groupBy(validData, row => row._key_room);
+    const groupedByTurma = groupBy(validData, row => row._key_turma);
 
-    const groupedData = groupBy(validData, row => row._key);
+    const overlaps = new Set();
 
-    const addedRows = new Set();
-    Object.values(groupedData).forEach(group => {
-        group.sort((a, b) => a._start - b._start);
+    const checkOverlaps = (group) => {
+        Object.values(group).forEach(groupedRows => {
+            groupedRows.sort((a, b) => a._start - b._start);
 
-        for (let i = 0; i < group.length; i++) {
-            const rowA = group[i];
-            const startA = rowA._start;
-            const endA = rowA._end;
+            for (let i = 0; i < groupedRows.length; i++) {
+                const rowA = groupedRows[i];
+                const startA = rowA._start;
+                const endA = rowA._end;
 
-            for (let j = i + 1; j < group.length; j++) {
-                const rowB = group[j];
-                const startB = rowB._start;
+                for (let j = i + 1; j < groupedRows.length; j++) {
+                    const rowB = groupedRows[j];
+                    const startB = rowB._start;
+                    const endB = rowB._end;
 
-                if (startB >= endA) break;
-
-                const endB = rowB._end;
-
-                if ((startA < endB && startA >= startB) || (startB < endA && startB >= startA)) {
-                    if (!addedRows.has(rowA)) {
-                        addedRows.add(rowA);
-                        overlapClasses++;
-                    }
-                    if (!addedRows.has(rowB)) {
-                        addedRows.add(rowB);
-                        overlapClasses++;
+                    if (startB >= endA) break;
+                    if ((startA < endB && startB < endA)) {
+                        overlaps.add(JSON.stringify(rowA));
+                        overlaps.add(JSON.stringify(rowB));
                     }
                 }
             }
-        }
-    });
+        });
+    };
 
-    const overlapPercentage = totalClasses > 0 ? ((overlapClasses / totalClasses) * 100) : 0;
+    checkOverlaps(groupedByRoom);
+    checkOverlaps(groupedByTurma);
+    const overlapRows = Array.from(overlaps).map(rowStr => JSON.parse(rowStr));
+    overlapClasses = overlapRows.length;
+    const overlapPercentage = totalClasses > 0 ? ((overlapClasses / totalClasses) * 100).toFixed(2) : 0;
+
     return overlapPercentage
 }
 
@@ -1100,9 +1102,8 @@ function calculateMatchingCharacteristicsMetrics() {
 
 
     const scheduleData = scheduleTable.getData();
-
     let totalClasses = scheduleData.length;
-    let classesWithoutMatchingCharacteristics = 0;
+    let filteredClasses = 0;
 
     if (!scheduleData.length) {
         alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
@@ -1113,9 +1114,12 @@ function calculateMatchingCharacteristicsMetrics() {
         let requestedFeatures = row["Características da sala pedida para a aula"]
             ? row["Características da sala pedida para a aula"].toLowerCase().trim().split(",")
             : [];
+
+
         if (!requestedFeatures.length || requestedFeatures[0] === "não necessita de sala") {
-            return;
+            return false;
         }
+
         if (row["Características da sala pedida para a aula"].toLowerCase().trim() === "sala/anfiteatro aulas") {
             requestedFeatures.push("sala de aulas normal", "anfiteatro aulas");
         }
@@ -1127,14 +1131,13 @@ function calculateMatchingCharacteristicsMetrics() {
         const matches = requestedFeatures.some(requestedFeature =>
             actualFeatures.some(actualFeature => actualFeature.toLowerCase().includes(requestedFeature.trim()))
         );
-
         if (!matches)
-            classesWithoutMatchingCharacteristics++;
+            filteredClasses++;
 
         return !matches;
     });
 
-    const wrongCharacteristicsPercentage = totalClasses > 0 ? ((classesWithoutMatchingCharacteristics / totalClasses) * 100) : 0;
+    const wrongCharacteristicsPercentage = totalClasses > 0 ? ((filteredClasses / totalClasses) * 100).toFixed(2) : 0;
 
     return wrongCharacteristicsPercentage;
 }
@@ -1156,19 +1159,23 @@ function calculateNoRoomMetrics() {
         alert("O ficheiro CSV não contém a coluna necessária ('Sala da aula').");
         return;
     }
+    const textoExcluido = "Não necessita de sala".toLowerCase();
 
     const filteredData = scheduleData.filter(row => {
-        const contexto = row["Características da sala pedida para a aula"] ? row["Características da sala pedida para a aula"].toLowerCase().trim() : "";
 
-        const textoExcluido = "Não necessita de sala".toLowerCase();
+        const contexto = row["Características da sala pedida para a aula"]
+            ? row["Características da sala pedida para a aula"].toLowerCase().trim()
+            : "";
         if ((!row["Sala da aula"] || row["Sala da aula"].trim() === "") && contexto !== textoExcluido) {
             classesWithoutRoom++;
+            return true;
         }
+        return false;
     });
 
-    const overcrowdedPercentage = totalClasses > 0 ? ((classesWithoutRoom / totalClasses) * 100) : 0;
+    const classesWithoutRoomPercentage = totalClasses > 0 ? ((classesWithoutRoom / totalClasses) * 100).toFixed(2) : 0;
 
-    return overcrowdedPercentage;
+    return classesWithoutRoomPercentage;
 
 }
 
@@ -1187,6 +1194,7 @@ function calculateTimeRegulationMetrics() {
     const hasRequiredColumns = scheduleData.some(row => "Início" in row && "Fim" in row);
     if (!hasRequiredColumns) {
         alert("O ficheiro CSV não contém as colunas necessárias ('Início' e 'Fim').");
+        return;
     }
     const parseTime = (timeStr) => {
         const [hours, minutes] = timeStr.split(":").map(Number);
@@ -1196,9 +1204,12 @@ function calculateTimeRegulationMetrics() {
     const endLimit = parseTime("21:00:00");
     const maxDuration = 180;
     const filteredData = scheduleData.filter(row => {
+
+        const contexto = row["Características da sala pedida para a aula"]
+            ? row["Características da sala pedida para a aula"].toLowerCase().trim()
+            : "";
         const start = parseTime(row["Início"]);
         const end = parseTime(row["Fim"]);
-        const contexto = row["Características da sala pedida para a aula"] ? row["Características da sala pedida para a aula"].toLowerCase().trim() : "";
 
         const textoExcluido = "Não necessita de sala".toLowerCase();
         const isBeforeStartLimit = start < startLimit;
@@ -1207,10 +1218,12 @@ function calculateTimeRegulationMetrics() {
 
         if ((isBeforeStartLimit || isAfterEndLimit || hasInvalidDuration) && contexto !== textoExcluido) {
             filteredClasses++;
+            return true;
         }
+        return false;
     });
-    const overcrowdedPercentage = totalClasses > 0 ? ((filteredClasses / totalClasses) * 100) : 0;
-    return overcrowdedPercentage;
+    const regulationFailPercentage = totalClasses > 0 ? ((filteredClasses / totalClasses) * 100).toFixed(2) : 0;
+    return regulationFailPercentage;
 
 }
 
