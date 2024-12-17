@@ -1161,98 +1161,153 @@ scheduleTable.on("cellEdited", function (cell) {
 const row = cell.getRow();
 const timeRegex = /^(0[8-9]|1[0-9]|20|21):([03]0):00$/;
 
+const parseTime = (timeStr) => {
+    if (!timeStr) return 0; // If the time is empty, return 0 minutes
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    return hours * 60 + minutes;
+};
+
+const formatTime = (totalMinutes) => {
+    if (totalMinutes === 0) return ""; // If the totalMinutes is 0, return an empty string
+    const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
+    const minutes = String(totalMinutes % 60).padStart(2, "0");
+    return `${hours}:${minutes}:00`;
+};
+
+const MIN_GAP = 90;
+
+const checkOverlap = (newStartTime, newEndTime, field) => {
+    const newStartMinutes = parseTime(newStartTime);
+    const newEndMinutes = parseTime(newEndTime);
+
+    // Loop through all rows in the dataset (assuming 'row' refers to the current row)
+    const allRows = row.getDataTable().getData();
+    const currentTurmaOrRoom = row.getData()[field]; // 'Turma' or 'Room'
+
+    for (const otherRow of allRows) {
+        // Skip comparing with the current row (we are checking for other overlaps)
+        if (otherRow === row.getData()) continue;
+
+        const otherStartTime = otherRow["Início"];
+        const otherEndTime = otherRow["Fim"];
+        const otherTurmaOrRoom = otherRow[field];
+
+        // Only check for overlap if the Turma or Room matches
+        if (currentTurmaOrRoom === otherTurmaOrRoom) {
+            const otherStartMinutes = parseTime(otherStartTime);
+            const otherEndMinutes = parseTime(otherEndTime);
+
+            // Check for overlap (start before end and end after start)
+            if (
+                (newStartMinutes < otherEndMinutes && newEndMinutes > otherStartMinutes) ||
+                (newStartMinutes >= otherStartMinutes && newStartMinutes < otherEndMinutes)
+            ) {
+                return true; // There is an overlap
+            }
+        }
+    }
+
+    return false; // No overlap found
+};
+
 if (cell.getColumn().getField() === "Início") {
-    const timeValue = cell.getValue();
-    if (!timeRegex.test(timeValue)) {
+    const newStartTime = cell.getValue();
+
+    if (newStartTime === "") {
+        row.update({
+            "Início": "",
+            "Fim": ""
+        });
+        return;
+    }
+
+    if (!timeRegex.test(newStartTime)) {
         alert("Erro: O horário deve ser no formato HH:MM:SS, onde HH está entre 08 e 21 e MM é 00 ou 30.");
         cell.setValue(cell.getOldValue());
         return;
     }
 
     const oldStartTime = cell.getOldValue();
-    const oldEndTime = row.getData()["Fim"];
+    const endTime = row.getData()["Fim"];
+    const newStartMinutes = parseTime(newStartTime);
+    const currentEndMinutes = parseTime(endTime);
+    const originalGap = currentEndMinutes - parseTime(oldStartTime);
 
-    const parseTime = (timeStr) => {
-        const [hours, minutes] = timeStr.split(":").map(Number);
-        return hours * 60 + minutes;
-    };
+    // Check for overlap before making any changes
+    if (checkOverlap(newStartTime, endTime, "Turma") || checkOverlap(newStartTime, endTime, "Room")) {
+        alert("Erro: O horário selecionado sobrepõe com outro horário na mesma Turma ou Sala.");
+        cell.setValue(cell.getOldValue());
+        return;
+    }
 
-    const formatTime = (totalMinutes) => {
-        const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
-        const minutes = String(totalMinutes % 60).padStart(2, "0");
-        return `${hours}:${minutes}:00`;
-    };
-
-    const oldStartMinutes = parseTime(oldStartTime);
-    const oldEndMinutes = parseTime(oldEndTime);
-    const originalGap = oldEndMinutes - oldStartMinutes;
-    if (Math.abs(oldEndMinutes - oldStartMinutes) > 180) {
-        const adjustedEndMinutes = oldStartMinutes + 180;
+    if (newStartMinutes > currentEndMinutes) {
+        const adjustedEndMinutes = newStartMinutes + originalGap;
         const adjustedEndTime = formatTime(adjustedEndMinutes);
 
         row.update({
-            "Início": cell.getValue(),
-            "Fim": adjustedEndTime
+            "Início": newStartTime,
+            "Fim": adjustedEndMinutes - newStartMinutes < MIN_GAP ? formatTime(newStartMinutes + MIN_GAP) : adjustedEndTime,
         });
     } else {
-        const adjustedEndTime = formatTime(parseTime(cell.getValue()) + originalGap);
         row.update({
-            "Início": cell.getValue(),
-            "Fim": adjustedEndTime
+            "Início": newStartTime,
+            "Fim": currentEndMinutes - newStartMinutes < MIN_GAP
+                ? formatTime(newStartMinutes + MIN_GAP)
+                : endTime,
         });
     }
 }
-if (cell.getColumn().getField() === "Fim") {
-    const timeValue = cell.getValue();
 
-    if (!timeRegex.test(timeValue)) {
+if (cell.getColumn().getField() === "Fim") {
+    const newEndTime = cell.getValue();
+
+    if (newEndTime === "") {
+        row.update({
+            "Fim": "",
+            "Início": ""
+        });
+        return;
+    }
+
+    if (!timeRegex.test(newEndTime)) {
         alert("Erro: O horário deve ser no formato HH:MM:SS, onde HH está entre 08 e 21 e MM é 00 ou 30.");
         cell.setValue(cell.getOldValue());
         return;
     }
 
-    const oldStartTime = row.getData()["Início"];
+    const startTime = row.getData()["Início"];
     const oldEndTime = cell.getOldValue();
+    const newEndMinutes = parseTime(newEndTime);
+    const currentStartMinutes = parseTime(startTime);
+    const originalGap = parseTime(oldEndTime) - currentStartMinutes;
 
-    const parseTime = (timeStr) => {
-        const [hours, minutes] = timeStr.split(":").map(Number);
-        return hours * 60 + minutes;
-    };
+    // Check for overlap before making any changes
+    if (checkOverlap(startTime, newEndTime, "Turma") || checkOverlap(startTime, newEndTime, "Room")) {
+        alert("Erro: O horário selecionado sobrepõe com outro horário na mesma Turma ou Sala.");
+        cell.setValue(cell.getOldValue());
+        return;
+    }
 
-    const formatTime = (totalMinutes) => {
-        const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
-        const minutes = String(totalMinutes % 60).padStart(2, "0");
-        return `${hours}:${minutes}:00`;
-    };
-
-    const oldStartMinutes = parseTime(oldStartTime);
-    const oldEndMinutes = parseTime(oldEndTime);
-
-    const originalGap = oldEndMinutes - oldStartMinutes;
-
-    if (Math.abs(oldEndMinutes - oldStartMinutes) > 180) {
-        const adjustedStartMinutes = oldEndMinutes - 180;
+    if (newEndMinutes < currentStartMinutes) {
+        const adjustedStartMinutes = newEndMinutes - originalGap;
         const adjustedStartTime = formatTime(adjustedStartMinutes);
 
         row.update({
-            "Início": adjustedStartTime,
-            "Fim": formatTime(oldEndMinutes)
+            "Início": adjustedStartMinutes - newEndMinutes < MIN_GAP ? formatTime(newEndMinutes - MIN_GAP) : adjustedStartTime,
+            "Fim": newEndTime,
         });
     } else {
-        const adjustedStartTime = formatTime(parseTime(cell.getValue()) - originalGap)
         row.update({
-            "Início": adjustedStartTime,
-            "Fim": cell.getValue()
+            "Início": newEndMinutes - currentStartMinutes < MIN_GAP
+                ? formatTime(newEndMinutes - MIN_GAP)
+                : startTime,
+            "Fim": newEndTime,
         });
     }
 }
-    if (cell.getColumn().getField() === "Inscritos no turno") {
-        const value = cell.getValue();
-        if (isNaN(value) || value < 0 || !Number.isInteger(Number(value))) {
-            alert("Erro: Apenas números inteiros positivos são permitidos.");
-            cell.setValue(cell.getOldValue());
-        }
-    }
+
+
+
 
     if (cell.getValue() === "Nenhuma característica") {
         cell.setValue("");
