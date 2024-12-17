@@ -213,7 +213,6 @@ h1 {
     transform: scale(0.95);
 }
 
-/* Form Styles */
 form {
     display: flex;
     flex-direction: column;
@@ -227,7 +226,6 @@ form {
     max-width: 400px;
 }
 
-/* File Input Styles */
 input[type="file"] {
     margin-bottom: 20px;
     padding: 10px;
@@ -240,7 +238,6 @@ input[type="file"] {
     cursor: pointer;
 }
 
-/* Button Styles */
 button[type="submit"] {
     padding: 10px 20px;
     background-color: #636363;
@@ -350,12 +347,12 @@ button[type="submit"]:hover {
 }
 
 #popup-content {
-    background-color: #fff;  /* Solid white background for content */
+    background-color: #fff;
     padding: 30px;
     border-radius: 12px;
     width: 90%;
     max-width: 500px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* Soft shadow for better depth */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     text-align: center;
 }
 
@@ -377,7 +374,7 @@ button[type="submit"]:hover {
     margin-bottom: 15px;
     cursor: pointer;
     border-radius: 8px;
-    background-color: #fafafa; /* Slight gray background */
+    background-color: #fafafa;
     font-size: 16px;
     transition: all 0.3s ease;
 }
@@ -400,11 +397,114 @@ button[type="submit"]:hover {
 }
 
 #popup-close-btn:hover {
-    background-color: #d42f2f; /* Darker red on hover */
+    background-color: #d42f2f;
 }
 
 #popup-close-btn:active {
-    background-color: #b81e1e; /* Even darker when clicked */
+    background-color: #b81e1e;
+}
+
+.form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    max-width: 800px;
+    margin: 0 auto;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+
+.inputs-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.inputs-container input:nth-child(3),
+.inputs-container input:nth-child(4),
+.inputs-container input:nth-child(5) {
+    grid-column: span 1;
+}
+
+.inputs-container input:nth-child(6),
+.inputs-container input:nth-child(7),
+.inputs-container input:nth-child(8) {
+    grid-column: span 1;
+}
+
+.dropdowns-container {
+    display: flex;
+    gap: 10px;
+}
+
+.dropdowns-container select {
+    flex: 1;
+}
+
+.form-container input[type="time"],
+.form-container input[type="date"],
+.form-container input[type="text"],
+.form-container select {
+    padding: 10px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-container button.custom-file-input {
+    padding: 10px 20px;
+    background-color: #636363;
+    color: #fff;
+    font-size: 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s, box-shadow 0.2s;
+    margin-top: 10px;
+    align-self: flex-start;
+}
+
+.form-container button.custom-file-input:hover {
+    background-color: #4d4d4d;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.form-container button.custom-file-input:active {
+    transform: scale(0.95);
+}
+
+.button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+    width: 100%;
+}
+
+.form-container button.custom-file-input {
+    padding: 10px 20px;
+    background-color: #636363;
+    color: #fff;
+    font-size: 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s, box-shadow 0.2s;
+}
+
+.form-container button.custom-file-input:hover {
+    background-color: #4d4d4d;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.form-container button.custom-file-input:active {
+    transform: scale(0.95);
 }
 
 

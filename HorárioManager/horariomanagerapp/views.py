@@ -112,9 +112,9 @@ def update_schedule_file(request, schedule_id):
 
             return JsonResponse({"success": True, "message": "File updated successfully."})
         else:
-            return JsonResponse({"success": False, "message": "No file field in request.FILES."}, status=400)
+            return JsonResponse({"success": False, "message": "No file field in request.FILES."})
 
-    return JsonResponse({"success": False, "message": "Invalid request method."}, status=405)
+    return JsonResponse({"success": False, "message": "Invalid request method."})
 
 
 @csrf_exempt
@@ -137,9 +137,9 @@ def update_characteristics_file(request, characteristics_id):
 
             return JsonResponse({"success": True, "message": "File updated successfully."})
         else:
-            return JsonResponse({"success": False, "message": "No file field in request.FILES."}, status=400)
+            return JsonResponse({"success": False, "message": "No file field in request.FILES."})
 
-    return JsonResponse({"success": False, "message": "Invalid request method."}, status=405)
+    return JsonResponse({"success": False, "message": "Invalid request method."})
 
 
 def dashboard(request):
@@ -163,7 +163,7 @@ def update_metrics(request, schedule_id):
 
             return JsonResponse({'status': 'success', 'message': 'Metrics updated successfully.'})
         except Schedule.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Schedule not found.'}, status=404)
+            return JsonResponse({'status': 'error', 'message': 'Schedule not found.'})
         except json.JSONDecodeError:
-            return JsonResponse({'status': 'error', 'message': 'Invalid JSON.'}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON.'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})

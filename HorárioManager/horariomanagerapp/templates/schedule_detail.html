@@ -68,8 +68,38 @@
         </div>
     </div>
 </div>
+<div class="form-container">
 
-<button onclick="addNewRow()" class="custom-file-input">Adicionar linha em branco</button>
+    <div class="inputs-container">
+        <input type="text" id="curso" placeholder="Curso">
+        <input type="text" id="unidade" placeholder="Unidade de execução">
+
+        <input type="text" id="turno" placeholder="Turno">
+        <input type="text" id="turma" placeholder="Turma">
+        <input type="text" id="inscritos" placeholder="Inscritos">
+
+        <input type="date" id="dia" placeholder="Dia">
+        <input type="time" id="inicio" placeholder="Início">
+        <input type="time" id="fim" placeholder="Fim">
+    </div>
+
+    <div class="dropdowns-container">
+        <select id="caracteristicas">
+            <option value="" disabled selected>Características pedidas</option>
+        </select>
+    </div>
+
+    <div class="dropdowns-container">
+        <select id="Sala">
+            <option value="" disabled selected>Sala</option>
+        </select>
+    </div>
+
+    <div class="button-container">
+        <button onclick="addNewRow()" class="custom-file-input">Adicionar linha</button>
+    </div>
+</div>
+
 <br>
 
     <h2 id="characteristics-h2" style="display: none">Características das Salas</h2>
