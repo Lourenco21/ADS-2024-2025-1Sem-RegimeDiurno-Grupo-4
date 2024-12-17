@@ -131,6 +131,18 @@ let initialTimeRegulationMetrics = null;
 let initialWrongCharacteristicsMetrics = null;
 let originalScheduleData = [];
 
+function addNewRow() {
+    if (window.scheduleTable) {
+        window.scheduleTable.addRow({}, true, "top").then(function(row) {
+
+        }).catch(function(error) {
+            console.error("Error adding empty row:", error);
+        });
+    } else {
+        console.error("Table not initialized.");
+    }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     const scriptTag = document.querySelector('script[file-url][data-schedule-id]');
     const fileUrl = scriptTag.getAttribute('file-url');
@@ -181,7 +193,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
 function updateMetricsOnServer(scheduleId, metrics) {
     const updateUrl = `/schedule/${scheduleId}/update-metrics/`;
-    console.log("Update URL:", updateUrl);
     fetch(`/schedule/${scheduleId}/update-metrics/`, {
         method: 'POST',
         headers: {
@@ -192,7 +203,6 @@ function updateMetricsOnServer(scheduleId, metrics) {
     })
         .then(response => {
             if (response.ok) {
-                console.log("Metrics updated successfully.");
             } else {
                 console.error("Failed to update metrics on the server.");
             }
@@ -433,7 +443,6 @@ document.getElementById("overcrowdedFilterButton").addEventListener("click", fun
 });
 
 document.getElementById("overlapFilterButton").addEventListener("click", function () {
-
     resetFiltersAndMetrics();
     const scheduleData = scheduleTable.getData();
 
@@ -448,19 +457,21 @@ document.getElementById("overlapFilterButton").addEventListener("click", functio
         "Início" in row &&
         "Fim" in row &&
         "Sala da aula" in row &&
-        "Dia" in row
+        "Dia" in row &&
+        "Turma" in row
     );
 
     if (!hasRequiredColumns) {
-        alert("O ficheiro CSV não contém as colunas necessárias ('Início', 'Fim', 'Sala da aula', 'Dia').");
+        alert("O ficheiro CSV não contém as colunas necessárias ('Início', 'Fim', 'Sala da aula', 'Dia', 'Turma').");
         return;
     }
-    const validData = scheduleData.filter(row => row["Sala da aula"] && row["Sala da aula"].trim() !== "");
+    const validData = scheduleData.filter(row => row["Sala da aula"]?.trim() && row["Turma"]?.trim());
 
     if (!validData.length) {
-        alert("Todas as aulas possuem 'Sala da aula' vazia. Nenhuma sobreposição será calculada.");
+        alert("Os dados não possuem 'Sala da aula' ou 'Turma' válidos. Nenhuma sobreposição será calculada.");
         return;
     }
+
     const parseTime = (timeStr) => {
         const [hours, minutes] = timeStr.split(":").map(Number);
         return hours * 60 + minutes;
@@ -468,8 +479,10 @@ document.getElementById("overlapFilterButton").addEventListener("click", functio
     validData.forEach(row => {
         row._start = parseTime(row["Início"]);
         row._end = parseTime(row["Fim"]);
-        row._key = `${row["Sala da aula"].trim()}_${row["Dia"].trim()}`;
+        row._key_room = `${row["Sala da aula"].trim()}_${row["Dia"].trim()}`;
+        row._key_turma = `${row["Turma"].trim()}_${row["Dia"].trim()}`;
     });
+
     const groupBy = (data, keyFn) => {
         return data.reduce((acc, row) => {
             const key = keyFn(row);
@@ -478,67 +491,57 @@ document.getElementById("overlapFilterButton").addEventListener("click", functio
             return acc;
         }, {});
     };
+    const groupedByRoom = groupBy(validData, row => row._key_room);
+    const groupedByTurma = groupBy(validData, row => row._key_turma);
 
-    const groupedData = groupBy(validData, row => row._key);
+    const overlaps = new Set();
 
-    const overlaps = [];
-    const addedRows = new Set();
-    Object.values(groupedData).forEach(group => {
-        group.sort((a, b) => a._start - b._start);
+    const checkOverlaps = (group) => {
+        Object.values(group).forEach(groupedRows => {
+            groupedRows.sort((a, b) => a._start - b._start);
 
-        for (let i = 0; i < group.length; i++) {
-            const rowA = group[i];
-            const startA = rowA._start;
-            const endA = rowA._end;
+            for (let i = 0; i < groupedRows.length; i++) {
+                const rowA = groupedRows[i];
+                const startA = rowA._start;
+                const endA = rowA._end;
 
-            for (let j = i + 1; j < group.length; j++) {
-                const rowB = group[j];
-                const startB = rowB._start;
-                const endB = rowB._end;
+                for (let j = i + 1; j < groupedRows.length; j++) {
+                    const rowB = groupedRows[j];
+                    const startB = rowB._start;
+                    const endB = rowB._end;
 
-                if (startB >= endA) break;
-                if ((startA < endB && startA >= startB) || (startB < endA && startB >= startA)) {
-                    if (!addedRows.has(rowA)) {
-                        overlaps.push(rowA);
-                        addedRows.add(rowA);
-                        overlapClasses++;
-                    }
-                    if (!addedRows.has(rowB)) {
-                        overlaps.push(rowB);
-                        addedRows.add(rowB);
-                        overlapClasses++;
+                    if (startB >= endA) break;
+                    if ((startA < endB && startB < endA)) {
+                        overlaps.add(JSON.stringify(rowA));
+                        overlaps.add(JSON.stringify(rowB));
                     }
                 }
             }
-        }
-    });
-    scheduleTable.setFilter((row) => {
-
-        const rowStart = parseTime(row["Início"]);
-        const rowEnd = parseTime(row["Fim"]);
-        const rowKey = `${row["Sala da aula"].trim()}_${row["Dia"].trim()}`;
-
-        return overlaps.some(overlapRow => {
-            if (overlapRow._key === rowKey) {
-                return (
-                    (rowStart < overlapRow._end && rowStart >= overlapRow._start) ||
-                    (overlapRow._start < rowEnd && overlapRow._start >= rowStart)
-                );
-            }
-            return false;
         });
+    };
+
+    checkOverlaps(groupedByRoom);
+    checkOverlaps(groupedByTurma);
+    const overlapRows = Array.from(overlaps).map(rowStr => JSON.parse(rowStr));
+    overlapClasses = overlapRows.length;
+    scheduleTable.setFilter((row) => {
+        return overlapRows.some(overlapRow =>
+            row["Início"] === overlapRow["Início"] &&
+            row["Fim"] === overlapRow["Fim"] &&
+            row["Sala da aula"] === overlapRow["Sala da aula"] &&
+            row["Dia"] === overlapRow["Dia"] &&
+            row["Turma"] === overlapRow["Turma"]
+        );
     });
-
-
     const overlapPercentage = totalClasses > 0 ? ((overlapClasses / totalClasses) * 100).toFixed(2) : 0;
 
     let metricDisplay = document.getElementById("overlapMetrics");
     if (!metricDisplay) {
         metricDisplay = document.createElement("div");
-        metricDisplay.id = "overcrowdedMetrics";
+        metricDisplay.id = "overlapMetrics";
         metricDisplay.style.marginTop = "10px";
         metricDisplay.style.fontWeight = "bold";
-        document.getElementById("overcrowdedFilterButton").insertAdjacentElement("afterend", metricDisplay);
+        document.getElementById("overlapFilterButton").insertAdjacentElement("afterend", metricDisplay);
     }
 
     metricDisplay.innerHTML = `
@@ -548,14 +551,10 @@ document.getElementById("overlapFilterButton").addEventListener("click", functio
         `;
 
     metricDisplay.style.display = "block";
-
-    initialOvercrowdMetrics = calculateOvercrowdedMetrics();
-    initialOverlapMetrics = totalClasses > 0 ? ((overlapClasses / totalClasses) * 100) : 0;
-    initialNoRoomMetrics = calculateNoRoomMetrics();
-    initialTimeRegulationMetrics = calculateTimeRegulationMetrics();
-    initialWrongCharacteristicsMetrics = calculateMatchingCharacteristicsMetrics();
-
 });
+
+
+
 
 function calculateOvercrowdedMetrics() {
 
@@ -1159,50 +1158,132 @@ function getRoomCharacteristics(roomName) {
 }
 
 scheduleTable.on("cellEdited", function (cell) {
+const row = cell.getRow();
+const timeRegex = /^(0[8-9]|1[0-9]|20|21):([03]0):00$/;
 
+if (cell.getColumn().getField() === "Início") {
+    const timeValue = cell.getValue();
+    if (!timeRegex.test(timeValue)) {
+        alert("Erro: O horário deve ser no formato HH:MM:SS, onde HH está entre 08 e 21 e MM é 00 ou 30.");
+        cell.setValue(cell.getOldValue());
+        return;
+    }
+
+    const oldStartTime = cell.getOldValue();
+    const oldEndTime = row.getData()["Fim"];
+
+    const parseTime = (timeStr) => {
+        const [hours, minutes] = timeStr.split(":").map(Number);
+        return hours * 60 + minutes;
+    };
+
+    const formatTime = (totalMinutes) => {
+        const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
+        const minutes = String(totalMinutes % 60).padStart(2, "0");
+        return `${hours}:${minutes}:00`;
+    };
+
+    const oldStartMinutes = parseTime(oldStartTime);
+    const oldEndMinutes = parseTime(oldEndTime);
+    const originalGap = oldEndMinutes - oldStartMinutes;
+    if (Math.abs(oldEndMinutes - oldStartMinutes) > 180) {
+        const adjustedEndMinutes = oldStartMinutes + 180;
+        const adjustedEndTime = formatTime(adjustedEndMinutes);
+
+        row.update({
+            "Início": cell.getValue(),
+            "Fim": adjustedEndTime
+        });
+    } else {
+        const adjustedEndTime = formatTime(parseTime(cell.getValue()) + originalGap);
+        row.update({
+            "Início": cell.getValue(),
+            "Fim": adjustedEndTime
+        });
+    }
+}
+if (cell.getColumn().getField() === "Fim") {
+    const timeValue = cell.getValue();
+
+    if (!timeRegex.test(timeValue)) {
+        alert("Erro: O horário deve ser no formato HH:MM:SS, onde HH está entre 08 e 21 e MM é 00 ou 30.");
+        cell.setValue(cell.getOldValue());
+        return;
+    }
+
+    const oldStartTime = row.getData()["Início"];
+    const oldEndTime = cell.getOldValue();
+
+    const parseTime = (timeStr) => {
+        const [hours, minutes] = timeStr.split(":").map(Number);
+        return hours * 60 + minutes;
+    };
+
+    const formatTime = (totalMinutes) => {
+        const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
+        const minutes = String(totalMinutes % 60).padStart(2, "0");
+        return `${hours}:${minutes}:00`;
+    };
+
+    const oldStartMinutes = parseTime(oldStartTime);
+    const oldEndMinutes = parseTime(oldEndTime);
+
+    const originalGap = oldEndMinutes - oldStartMinutes;
+
+    if (Math.abs(oldEndMinutes - oldStartMinutes) > 180) {
+        const adjustedStartMinutes = oldEndMinutes - 180;
+        const adjustedStartTime = formatTime(adjustedStartMinutes);
+
+        row.update({
+            "Início": adjustedStartTime,
+            "Fim": formatTime(oldEndMinutes)
+        });
+    } else {
+        const adjustedStartTime = formatTime(parseTime(cell.getValue()) - originalGap)
+        row.update({
+            "Início": adjustedStartTime,
+            "Fim": cell.getValue()
+        });
+    }
+}
     if (cell.getColumn().getField() === "Inscritos no turno") {
         const value = cell.getValue();
         if (isNaN(value) || value < 0 || !Number.isInteger(Number(value))) {
             alert("Erro: Apenas números inteiros positivos são permitidos.");
             cell.setValue(cell.getOldValue());
-
         }
     }
 
     if (cell.getValue() === "Nenhuma característica") {
         cell.setValue("");
+        return;
     }
 
-    const row = cell.getRow();
+   if (cell.getColumn().getField() === "Dia") {
+    const newDate = cell.getValue();
+    const originalDate = cell.getOldValue();
+    const room = row.getData()["Sala da aula"];
+    const startTime = row.getData()["Início"];
+    const endTime = row.getData()["Fim"];
+    const dateRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+    if (newDate === "") {
+        return;
+    }
 
-    if (cell.getColumn().getField() === "Dia") {
-        const newDate = cell.getValue();
-        const originalDate = cell.getOldValue();
-        const room = row.getData()["Sala da aula"];
-        const startTime = row.getData()["Início"];
-        const endTime = row.getData()["Fim"];
+    if (!dateRegex.test(newDate)) {
+        alert("Erro: O formato da data deve ser DD/MM/YYYY.");
+        cell.setValue(originalDate);
+        return;
+    }
 
-        const parseDate = (dateStr) => {
-            const [day, month, year] = dateStr.split("/");
-            return new Date(`${year}-${month}-${day}`);
-        };
-        const parseTime = (timeStr) => {
-            const [hours, minutes] = timeStr.split(":").map(Number);
-            return hours * 60 + minutes;
-        };
-
-        const startMinutes = parseTime(startTime);
-        const endMinutes = parseTime(endTime);
-
-        const parsedDate = parseDate(newDate);
-
-        if (isNaN(parsedDate)) {
-            alert("Erro: O valor da data não é válido.");
+        const [day, month, year] = newDate.split("/").map(Number);
+        const parsedDate = new Date(year, month - 1, day);
+        if (parsedDate.getDate() !== day || parsedDate.getMonth() + 1 !== month || parsedDate.getFullYear() !== year) {
+            alert("Erro: A data inserida é inválida.");
             cell.setValue(originalDate);
             return;
         }
         const dayOfWeek = parsedDate.getDay();
-
         if (dayOfWeek === 0 || dayOfWeek === 6) {
             const userChoice = confirm(
                 "Aviso: O dia selecionado é um fim de semana. Deseja continuar com esta alteração?"
@@ -1212,6 +1293,13 @@ scheduleTable.on("cellEdited", function (cell) {
                 return;
             }
         }
+        const parseTime = (timeStr) => {
+            const [hours, minutes] = timeStr.split(":").map(Number);
+            return hours * 60 + minutes;
+        };
+
+        const startMinutes = parseTime(startTime);
+        const endMinutes = parseTime(endTime);
 
         const isRoomAvailable = !scheduleTable.getRows().some((otherRow) => {
             const otherRowData = otherRow.getData();
@@ -1232,8 +1320,9 @@ scheduleTable.on("cellEdited", function (cell) {
             }
             return false;
         });
+
         if (!isRoomAvailable) {
-            const userWantsRecommendation = confirm("A sala não está disponível para o novo dia e horário. Deseja que recomendemos um novo dia para a aula?");
+            const userWantsRecommendation = confirm("A sala não está disponível para o novo dia e horário. Deseja uma recomendação de um dia");
             if (userWantsRecommendation) {
                 cell.setValue(originalDate);
                 const recommendedDates = recommendAlternativeDates(row.getData());
@@ -1247,21 +1336,17 @@ scheduleTable.on("cellEdited", function (cell) {
                 cell.setValue(originalDate);
                 return;
             }
-
         }
         const dayOfWeekMapping = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
         const dayOfWeekName = dayOfWeekMapping[dayOfWeek];
         row.update({"Dia da Semana": dayOfWeekName});
     }
-
-
     if (cell.getColumn().getField() === "Sala da aula") {
         const originalValue = cell.getOldValue();
         const roomName = cell.getValue();
         const row = cell.getRow();
 
         if (roomName === "Sem sala") {
-
             row.update({
                 "Sala da aula": "",
                 "Lotação": "",
@@ -1278,14 +1363,13 @@ scheduleTable.on("cellEdited", function (cell) {
                     "Características reais da sala": roomCharacteristics.features
                 });
             } else {
-
                 alert("Não há opções de Sala. Irá ficar com a sala atual.");
                 cell.setValue(originalValue);
             }
         }
         if (!roomName) {
             cell.setValue(originalValue);
-            const characteristics = getRoomCharacteristics(originalValue)
+            const characteristics = getRoomCharacteristics(originalValue);
             row.update({
                 "Lotação": characteristics.capacity,
                 "Características reais da sala": characteristics.features
@@ -1310,6 +1394,7 @@ scheduleTable.on("cellEdited", function (cell) {
     initialTimeRegulationMetrics = updatedTimeRegulationMetrics;
     initialWrongCharacteristicsMetrics = updatedWrongCharacteristicsMetrics;
 });
+
 
 function recommendAlternativeDates(scheduleRow) {
     const allScheduleData = scheduleTable.getData();
@@ -1363,7 +1448,6 @@ function recommendAlternativeDates(scheduleRow) {
                             startTime: formatTime(potentialStartTime),
                             endTime: formatTime(potentialEndTime),
                         });
-                        console.log(recommendedDates);
                         if (recommendedDates.length >= 3) return recommendedDates;
                     }
                 }
@@ -1387,14 +1471,10 @@ function recommendAlternativeDates(scheduleRow) {
                     startTime: formatTime(finalPotentialStartTime),
                     endTime: formatTime(finalPotentialEndTime),
                 });
-
-                console.log(recommendedDates);
                 if (recommendedDates.length >= 3) return recommendedDates;
             }
         }
     }
-
-    console.log(recommendedDates);
     return recommendedDates;
 }
 
