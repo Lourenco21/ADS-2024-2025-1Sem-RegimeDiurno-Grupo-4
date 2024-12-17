@@ -1,13 +1,10 @@
-from django.core.files.base import ContentFile
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 import json
-import base64
 import os
 from .models import Schedule, Characteristics
 from django.contrib import messages
-from django.core.files.storage import default_storage
 
 
 # Create your views here.

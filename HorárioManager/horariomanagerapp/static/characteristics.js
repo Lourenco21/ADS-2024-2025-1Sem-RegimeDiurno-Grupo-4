@@ -13,30 +13,30 @@ var characteristicsTable = new Tabulator("#characteristics-table", {
 document.addEventListener("DOMContentLoaded", function () {
     const scriptTag = document.querySelector('script[characteristics-url]');
     const fileUrl = scriptTag.getAttribute('characteristics-url');
-    fetch (fileUrl)
+    fetch(fileUrl)
         .then(response => response.text())
         .then(csvData => {
 
-        Papa.parse(csvData, {
-            header: true,
-            skipEmptyLines: true,
-            complete: function (results) {
+            Papa.parse(csvData, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function (results) {
 
-                if (results.data.length === 0) {
-                    alert("Ficheiro CSV inválido.");
-                    return;
-                }
+                    if (results.data.length === 0) {
+                        alert("Ficheiro CSV inválido.");
+                        return;
+                    }
 
-                const columns = generateColumns(results.data);
-                characteristicsTable.setColumns(columns);
-                characteristicsTable.setData(results.data);
-            },
-            error: function (error) {
-                alert("Houve um erro a ler o ficheiro.");
-            },
-        });
+                    const columns = generateColumns(results.data);
+                    characteristicsTable.setColumns(columns);
+                    characteristicsTable.setData(results.data);
+                },
+                error: function (error) {
+                    alert("Houve um erro a ler o ficheiro.");
+                },
+            });
 
-    })
+        })
         .catch(error => console.error("Erro a carregar ficheiro: ", error));
 });
 
@@ -51,45 +51,45 @@ function generateColumns(data) {
             "Características reais da sala",
             "Dia da Semana"
         ];
-                if (field === "Sala da aula") {
-                return {
-                        title: field.charAt(0).toUpperCase() + field.slice(1),
-                        field: field,
-                        headerMenu: headerMenu,
-                        headerFilter: "input",
-                        headerFilterPlaceholder: "Search...",
-                        headerWordWrap: true,
-                        editor: "list",
-                        editorParams: function (cell) {
-                            const rowData = cell.getRow().getData(); // Get data of the current row
-                            const matchingRooms = getMatchingRooms(rowData); // Get the matching rooms based on row data
-                            const roomOptions = matchingRooms.length > 0 ? matchingRooms : ["Não há salas disponiveis"];
-                            roomOptions.unshift("Sem sala");  // Add an empty string option to the beginning
-                            return {
-                                values: roomOptions
-                            };
-                        }
+        if (field === "Sala da aula") {
+            return {
+                title: field.charAt(0).toUpperCase() + field.slice(1),
+                field: field,
+                headerMenu: headerMenu,
+                headerFilter: "input",
+                headerFilterPlaceholder: "Search...",
+                headerWordWrap: true,
+                editor: "list",
+                editorParams: function (cell) {
+                    const rowData = cell.getRow().getData(); // Get data of the current row
+                    const matchingRooms = getMatchingRooms(rowData); // Get the matching rooms based on row data
+                    const roomOptions = matchingRooms.length > 0 ? matchingRooms : ["Não há salas disponiveis"];
+                    roomOptions.unshift("Sem sala");  // Add an empty string option to the beginning
+                    return {
+                        values: roomOptions
                     };
                 }
-                if (field === "Características da sala pedida para a aula") {
-                return {
-                    title: field.charAt(0).toUpperCase() + field.slice(1),
-                    field: field,
-                    headerMenu: headerMenu,
-                    headerFilter: "input",
-                    headerFilterPlaceholder: "Search...",
-                    headerWordWrap: true,
-                    editor: characteristicsTable.getData().length === 0 ? false : "list", // Disable editor if no data
-                    editorParams: function () {
-                        const characteristics = getCharacteristics();
-                        return {
-                            values: characteristics.length > 0
-                                ? ["Nenhuma característica", ...characteristics]
-                                : ["Sem características disponíveis"] // Fallback value if no characteristics
-                        };
-                    }
-                };
-            }
+            };
+        }
+        if (field === "Características da sala pedida para a aula") {
+            return {
+                title: field.charAt(0).toUpperCase() + field.slice(1),
+                field: field,
+                headerMenu: headerMenu,
+                headerFilter: "input",
+                headerFilterPlaceholder: "Search...",
+                headerWordWrap: true,
+                editor: characteristicsTable.getData().length === 0 ? false : "list", // Disable editor if no data
+                editorParams: function () {
+                    const characteristics = getCharacteristics();
+                    return {
+                        values: characteristics.length > 0
+                            ? ["Nenhuma característica", ...characteristics]
+                            : ["Sem características disponíveis"] // Fallback value if no characteristics
+                    };
+                }
+            };
+        }
         return {
             title: field.charAt(0).toUpperCase() + field.slice(1),
             field: field,
@@ -153,7 +153,7 @@ function saveCharacteristicsChanges(characteristicsId) {
     const csvContent = Papa.unparse(tableData);
 
     // Create a Blob from the CSV content
-    const csvBlob = new Blob([csvContent], { type: "text/csv" });
+    const csvBlob = new Blob([csvContent], {type: "text/csv"});
     const fileName = "updated_characteristics.csv";
 
     // Append the Blob to FormData
@@ -214,7 +214,7 @@ document.getElementById("saveChangesButton").addEventListener("click", function 
 
     const csvContent = Papa.unparse(modifiedData);
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([csvContent], {type: "text/csv;charset=utf-8;"});
 
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -227,7 +227,7 @@ document.getElementById("saveChangesButton").addEventListener("click", function 
 
 let isReverting = false;
 
-characteristicsTable.on("cellEdited", function(cell) {
+characteristicsTable.on("cellEdited", function (cell) {
     if (isReverting) return;
 
     const table = cell.getTable();
@@ -272,5 +272,5 @@ characteristicsTable.on("cellEdited", function(cell) {
             isReverting = false;
             return;
         }
-        }
-    });
+    }
+});

@@ -268,9 +268,6 @@ function updateMetricsOnServer(scheduleId, metrics) {
         .catch(error => console.error("Error sending metrics to the server: ", error));
 }
 
-/**
- * Utility function to get the CSRF token from cookies (for Django).
- */
 function getCsrfToken() {
     const csrfMatch = document.cookie.match(/csrftoken=([^;]+)/);
     return csrfMatch ? csrfMatch[1] : null;
@@ -672,34 +669,39 @@ function calculateOverlapMetrics() {
     let overlapClasses = 0;
 
     if (!scheduleData.length) {
-        throw new Error("No data available. Please upload a CSV first.");
+        alert("Por favor, faça upload de um CSV antes de aplicar o filtro.");
+        return;
     }
-
     const hasRequiredColumns = scheduleData.some(row =>
         "Início" in row &&
         "Fim" in row &&
         "Sala da aula" in row &&
-        "Dia" in row
+        "Dia" in row &&
+        "Turma" in row
     );
-    if (!hasRequiredColumns) {
-        throw new Error("Missing required columns ('Início', 'Fim', 'Sala da aula', 'Dia').");
-    }
 
-    const validData = scheduleData.filter(row => row["Sala da aula"] && row["Sala da aula"].trim() !== "");
+    if (!hasRequiredColumns) {
+        alert("O ficheiro CSV não contém as colunas necessárias ('Início', 'Fim', 'Sala da aula', 'Dia', 'Turma').");
+        return;
+    }
+    const validData = scheduleData.filter(row => row["Sala da aula"]?.trim() && row["Turma"]?.trim());
 
     if (!validData.length) {
-        throw new Error("All classes have an empty 'Sala da aula'. No overlaps can be calculated.");
+        alert("Os dados não possuem 'Sala da aula' ou 'Turma' válidos. Nenhuma sobreposição será calculada.");
+        return;
     }
+
     const parseTime = (timeStr) => {
         const [hours, minutes] = timeStr.split(":").map(Number);
         return hours * 60 + minutes;
     };
-
     validData.forEach(row => {
         row._start = parseTime(row["Início"]);
         row._end = parseTime(row["Fim"]);
-        row._key = `${row["Sala da aula"].trim()}_${row["Dia"].trim()}`;
+        row._key_room = `${row["Sala da aula"].trim()}_${row["Dia"].trim()}`;
+        row._key_turma = `${row["Turma"].trim()}_${row["Dia"].trim()}`;
     });
+
     const groupBy = (data, keyFn) => {
         return data.reduce((acc, row) => {
             const key = keyFn(row);
@@ -708,39 +710,39 @@ function calculateOverlapMetrics() {
             return acc;
         }, {});
     };
+    const groupedByRoom = groupBy(validData, row => row._key_room);
+    const groupedByTurma = groupBy(validData, row => row._key_turma);
 
-    const groupedData = groupBy(validData, row => row._key);
+    const overlaps = new Set();
 
-    const addedRows = new Set();
-    Object.values(groupedData).forEach(group => {
-        group.sort((a, b) => a._start - b._start);
+    const checkOverlaps = (group) => {
+        Object.values(group).forEach(groupedRows => {
+            groupedRows.sort((a, b) => a._start - b._start);
 
-        for (let i = 0; i < group.length; i++) {
-            const rowA = group[i];
-            const startA = rowA._start;
-            const endA = rowA._end;
+            for (let i = 0; i < groupedRows.length; i++) {
+                const rowA = groupedRows[i];
+                const startA = rowA._start;
+                const endA = rowA._end;
 
-            for (let j = i + 1; j < group.length; j++) {
-                const rowB = group[j];
-                const startB = rowB._start;
+                for (let j = i + 1; j < groupedRows.length; j++) {
+                    const rowB = groupedRows[j];
+                    const startB = rowB._start;
+                    const endB = rowB._end;
 
-                if (startB >= endA) break;
-
-                const endB = rowB._end;
-
-                if ((startA < endB && startA >= startB) || (startB < endA && startB >= startA)) {
-                    if (!addedRows.has(rowA)) {
-                        addedRows.add(rowA);
-                        overlapClasses++;
-                    }
-                    if (!addedRows.has(rowB)) {
-                        addedRows.add(rowB);
-                        overlapClasses++;
+                    if (startB >= endA) break;
+                    if ((startA < endB && startB < endA)) {
+                        overlaps.add(JSON.stringify(rowA));
+                        overlaps.add(JSON.stringify(rowB));
                     }
                 }
             }
-        }
-    });
+        });
+    };
+
+    checkOverlaps(groupedByRoom);
+    checkOverlaps(groupedByTurma);
+    const overlapRows = Array.from(overlaps).map(rowStr => JSON.parse(rowStr));
+    overlapClasses = overlapRows.length;
 
     const overlapPercentage = totalClasses > 0 ? ((overlapClasses / totalClasses) * 100) : 0;
     return overlapPercentage
@@ -1232,10 +1234,10 @@ scheduleTable.on("cellEdited", function (cell) {
     const row = cell.getRow();
     const timeRegex = /^(0[8-9]|1[0-9]|20|21):([03]0):00$/;
 
-    const parseTime = (timeStr) => {
-        const [hours, minutes] = timeStr.split(":").map(Number);
-        return hours * 60 + minutes;
-    };
+const parseTime = (timeStr) => {
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    return hours * 60 + minutes;
+};
 
     const formatTime = (totalMinutes) => {
         const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
