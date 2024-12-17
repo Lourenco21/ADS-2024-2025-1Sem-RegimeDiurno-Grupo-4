@@ -146,7 +146,7 @@ function addNewRow() {
     const parsedDate = new Date(diaHelper[0], diaHelper[1] - 1, diaHelper[2]);
     const dayOfWeek = parsedDate.getDay();
     const dayOfWeekMapping = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
-        const dayOfWeekName = dayOfWeekMapping[dayOfWeek];
+    const dayOfWeekName = dayOfWeekMapping[dayOfWeek];
 
     if (!curso || !unidade || !turno || !turma || !inscritos || !dia || !inicio || !fim || !caracteristicas || !sala) {
         alert("Por favor, preencha todos os campos.");
@@ -175,7 +175,7 @@ function addNewRow() {
             "Características reais da sala": caracteristicasReais
         };
 
-        window.scheduleTable.addRow(rowData, true, "top").then(function(row) {
+        window.scheduleTable.addRow(rowData, true, "top").then(function (row) {
             isInscritosChanged = false;
             isDiaChanged = false;
             isInicioChanged = false;
@@ -193,7 +193,7 @@ function addNewRow() {
             document.getElementById("caracteristicas").selectedIndex = 0;
             document.getElementById("sala").selectedIndex = 0;
             showMetricBalance();
-        }).catch(function(error) {
+        }).catch(function (error) {
             console.error("Error adding row:", error);
         });
     } else {
@@ -623,8 +623,6 @@ document.getElementById("overlapFilterButton").addEventListener("click", functio
 
     metricDisplay.style.display = "block";
 });
-
-
 
 
 function calculateOvercrowdedMetrics() {
@@ -1231,321 +1229,356 @@ function getRoomCharacteristics(roomName) {
 let isProcessing = false;
 
 scheduleTable.on("cellEdited", function (cell) {
-const row = cell.getRow();
-const timeRegex = /^(0[8-9]|1[0-9]|20|21):([03]0):00$/;
+    const row = cell.getRow();
+    const timeRegex = /^(0[8-9]|1[0-9]|20|21):([03]0):00$/;
 
-const parseTime = (timeStr) => {
-    const [hours, minutes] = timeStr.split(":").map(Number);
-    return hours * 60 + minutes; // Convert time to total minutes
-};
+    const parseTime = (timeStr) => {
+        const [hours, minutes] = timeStr.split(":").map(Number);
+        return hours * 60 + minutes;
+    };
 
-const formatTime = (totalMinutes) => {
-    const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
-    const minutes = String(totalMinutes % 60).padStart(2, "0");
-    return `${hours}:${minutes}:00`;
-};
-const MAXGAP = 180;
+    const formatTime = (totalMinutes) => {
+        const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
+        const minutes = String(totalMinutes % 60).padStart(2, "0");
+        return `${hours}:${minutes}:00`;
+    };
+    const MAXGAP = 180;
 
-const confirmMaxGapStart = (newGap) => {
-    return confirm(`O novo intervalo de ${newGap} minutos é inválido. Selecione OK para adiantar o fim da aula.`);
-};
-const confirmMaxGapEnd = (newGap) => {
-    return confirm(`O novo intervalo de ${newGap} minutos é inválido. Selecione OK para atrasar o início da aula.`);
-};
-const confirmGapChange = (newGap, oldGap) => {
-    return confirm(`O intervalo mudará de ${oldGap} minutos para ${newGap} minutos. Deseja manter este novo intervalo?`);
-};
-const isOverlapping = (startMinutes, endMinutes, otherStart, otherEnd) => {
-    return (
-        (startMinutes < otherEnd && startMinutes >= otherStart) || // Start within range
-        (endMinutes > otherStart && endMinutes <= otherEnd) || // End within range
-        (startMinutes <= otherStart && endMinutes >= otherEnd) // Full overlap
-    );
-};
-const checkRoomOverlap = (startTime, endTime, room, date) => {
-    const overlapFound = scheduleTable.getRows().some((otherRow) => {
-        const otherRowData = otherRow.getData();
-        const otherStartTime = parseTime(otherRowData["Início"]);
-        const otherEndTime = parseTime(otherRowData["Fim"]);
-        const otherRoom = otherRowData["Sala da aula"];
-        const otherDate = otherRowData["Dia"];
+    const confirmMaxGapStart = (newGap) => {
+        return confirm(`O novo intervalo de ${newGap} minutos é inválido. Selecione OK para adiantar o fim da aula.`);
+    };
+    const confirmMaxGapEnd = (newGap) => {
+        return confirm(`O novo intervalo de ${newGap} minutos é inválido. Selecione OK para atrasar o início da aula.`);
+    };
+    const confirmGapChange = (newGap, oldGap) => {
+        return confirm(`O intervalo mudará de ${oldGap} minutos para ${newGap} minutos. Deseja manter este novo intervalo?`);
+    };
+    const isOverlapping = (startMinutes, endMinutes, otherStart, otherEnd) => {
+        return (
+            (startMinutes < otherEnd && startMinutes >= otherStart) ||
+            (endMinutes > otherStart && endMinutes <= otherEnd) ||
+            (startMinutes <= otherStart && endMinutes >= otherEnd)
+        );
+    };
+    const checkRoomOverlap = (startTime, endTime, room, date) => {
+        const overlapFound = scheduleTable.getRows().some((otherRow) => {
+            const otherRowData = otherRow.getData();
+            const otherStartTime = parseTime(otherRowData["Início"]);
+            const otherEndTime = parseTime(otherRowData["Fim"]);
+            const otherRoom = otherRowData["Sala da aula"];
+            const otherDate = otherRowData["Dia"];
+            if (otherRow === row) return false;
 
-        // Skip comparing to itself (current row)
-        if (otherRow === row) return false; // This skips comparing to the current row
-
-        return otherRoom === room && otherDate === date && isOverlapping(startTime, endTime, otherStartTime, otherEndTime);
-    });
-
-    return overlapFound;
-};
-const checkTurmaOverlap = (startTime, endTime, turma , date) => {
-    const overlapFound = scheduleTable.getRows().some((otherRow) => {
-        const otherRowData = otherRow.getData();
-        const otherStartTime = parseTime(otherRowData["Início"]);
-        const otherEndTime = parseTime(otherRowData["Fim"]);
-        const otherTurma = otherRowData["Turma"];
-        const otherDate = otherRowData["Dia"];
-
-        // Skip comparing to itself (current row)
-        if (otherRow === row) return false; // This skips comparing to the current row
-
-        return otherTurma === turma  && otherDate === date && isOverlapping(startTime, endTime, otherStartTime, otherEndTime);
-    });
-
-    return overlapFound;
-};
-
-
-// If "Início" is edited
-if (cell.getColumn().getField() === "Início") {
-     if (isProcessing) return;
-    isProcessing = true;
-
-    const newStartTime = cell.getValue();
-    const room = row.getData()["Sala da aula"];
-    const date = row.getData()["Dia"];
-    const turma = row.getData()["Turma"];
-    if (!newStartTime) {
-        row.update({
-            "Início": "",
-            "Fim": ""
+            return otherRoom === room && otherDate === date && isOverlapping(startTime, endTime, otherStartTime, otherEndTime);
         });
-        isProcessing = false;
-        return;
-    }
 
-    if (!timeRegex.test(newStartTime)) {
-        alert("Erro: O horário deve ser no formato HH:MM:SS, onde HH está entre 08 e 21 e MM é 00 ou 30.");
-        cell.setValue(cell.getOldValue());
-        isProcessing = false;
-        return;
-    }
+        return overlapFound;
+    };
+    const checkTurmaOverlap = (startTime, endTime, turma, date) => {
+        const overlapFound = scheduleTable.getRows().some((otherRow) => {
+            const otherRowData = otherRow.getData();
+            const otherStartTime = parseTime(otherRowData["Início"]);
+            const otherEndTime = parseTime(otherRowData["Fim"]);
+            const otherTurma = otherRowData["Turma"];
+            const otherDate = otherRowData["Dia"];
 
-    const oldStartTime = cell.getOldValue();
-    const endTime = row.getData()["Fim"];
-    const newStartMinutes = parseTime(newStartTime);
-    const currentEndMinutes = parseTime(endTime);
+            if (otherRow === row) return false;
 
-    if (!endTime) {
-        row.update({
-            "Início": newStartTime,
-            "Fim": ""
+            return otherTurma === turma && otherDate === date && isOverlapping(startTime, endTime, otherStartTime, otherEndTime);
         });
-        return;
-    }
 
-    const originalGap = currentEndMinutes - parseTime(oldStartTime);
+        return overlapFound;
+    };
+    if (cell.getColumn().getField() === "Início") {
+        if (isProcessing) return;
+        isProcessing = true;
 
-    if(newStartMinutes >= currentEndMinutes){
-        const endMinutes= newStartMinutes + originalGap;
-    if (checkRoomOverlap(newStartMinutes, endMinutes, room, date)) {
-        alert("Erro: Existe um conflito de horário na sala de aula.");
-        cell.setValue(cell.getOldValue());
-        isProcessing = false;
-        return;
-    }
-    if (checkTurmaOverlap(newStartMinutes, endMinutes, turma, date)) {
-        alert("Erro: Existe um conflito de horário na turma.");
-        cell.setValue(cell.getOldValue());
-        isProcessing = false;
-        return;
-    }
+        const newStartTime = cell.getValue();
+        const room = row.getData()["Sala da aula"];
+        const date = row.getData()["Dia"];
+        const turma = row.getData()["Turma"];
+        if (!newStartTime) {
             row.update({
-        "Início": newStartTime,
-        "Fim": formatTime(newStartMinutes + originalGap)
-        });
-        isProcessing = false;
+                "Início": "",
+                "Fim": ""
+            });
+            isProcessing = false;
             return;
-    }
-    const newGap = currentEndMinutes - newStartMinutes;
+        }
 
-    if (newGap !== originalGap) {
-        if (confirmGapChange(newGap, originalGap)) {
-    if(newGap > MAXGAP ) {
-        if (confirmMaxGapStart(newGap)) {
-        const endMinutes= newStartMinutes + MAXGAP;
-        if (checkRoomOverlap(newStartMinutes, endMinutes, room, date)) {
-        alert("Erro: Existe um conflito de horário na sala de aula.");
-        cell.setValue(cell.getOldValue());
-        isProcessing = false;
-        return;
+        if (!timeRegex.test(newStartTime)) {
+            alert("Erro: O horário deve ser no formato HH:MM:SS, onde HH está entre 08 e 21 e MM é 00 ou 30.");
+            cell.setValue(cell.getOldValue());
+            isProcessing = false;
+            return;
         }
-        if (checkTurmaOverlap(newStartMinutes, endMinutes, turma, date)) {
-        alert("Erro: Existe um conflito de horário na turma.");
-        cell.setValue(cell.getOldValue());
-        isProcessing = false;
-        return;
-        }
+
+        const oldStartTime = cell.getOldValue();
+        const endTime = row.getData()["Fim"];
+        const newStartMinutes = parseTime(newStartTime);
+        const currentEndMinutes = parseTime(endTime);
+
+        if (!endTime) {
             row.update({
                 "Início": newStartTime,
-                "Fim": formatTime(newStartMinutes + MAXGAP),
+                "Fim": ""
             });
-        } else {
-            row.update({
-                "Início": cell.getOldValue(),
-                "Fim": formatTime(currentEndMinutes),
-            });
+            return;
         }
-        isProcessing = false;
-        return;
-    }
-                const endMinutes= newStartMinutes + newGap;
+
+        const originalGap = currentEndMinutes - parseTime(oldStartTime);
+
+        if (newStartMinutes >= currentEndMinutes) {
+            const endMinutes = newStartMinutes + originalGap;
             if (checkRoomOverlap(newStartMinutes, endMinutes, room, date)) {
                 alert("Erro: Existe um conflito de horário na sala de aula.");
                 cell.setValue(cell.getOldValue());
                 isProcessing = false;
                 return;
-                }
+            }
             if (checkTurmaOverlap(newStartMinutes, endMinutes, turma, date)) {
                 alert("Erro: Existe um conflito de horário na turma.");
                 cell.setValue(cell.getOldValue());
                 isProcessing = false;
                 return;
-                }
+            }
             row.update({
                 "Início": newStartTime,
-                "Fim": formatTime(currentEndMinutes),
+                "Fim": formatTime(newStartMinutes + originalGap)
             });
-        } else {
-            // User wants to maintain the original gap
-                const endMinutes= newStartMinutes + originalGap;
+            isProcessing = false;
+            return;
+        }
+        const newGap = currentEndMinutes - newStartMinutes;
+
+        if (newGap !== originalGap) {
+            if (confirmGapChange(newGap, originalGap)) {
+                if (newGap > MAXGAP) {
+                    if (confirmMaxGapStart(newGap)) {
+                        const endMinutes = newStartMinutes + MAXGAP;
+                        if (checkRoomOverlap(newStartMinutes, endMinutes, room, date)) {
+                            alert("Erro: Existe um conflito de horário na sala de aula.");
+                            cell.setValue(cell.getOldValue());
+                            isProcessing = false;
+                            return;
+                        }
+                        if (checkTurmaOverlap(newStartMinutes, endMinutes, turma, date)) {
+                            alert("Erro: Existe um conflito de horário na turma.");
+                            cell.setValue(cell.getOldValue());
+                            isProcessing = false;
+                            return;
+                        }
+                        row.update({
+                            "Início": newStartTime,
+                            "Fim": formatTime(newStartMinutes + MAXGAP),
+                        });
+                    } else {
+                        row.update({
+                            "Início": cell.getOldValue(),
+                            "Fim": formatTime(currentEndMinutes),
+                        });
+                    }
+                    isProcessing = false;
+                    return;
+                }
+                const endMinutes = newStartMinutes + newGap;
                 if (checkRoomOverlap(newStartMinutes, endMinutes, room, date)) {
+                    alert("Erro: Existe um conflito de horário na sala de aula.");
+                    cell.setValue(cell.getOldValue());
+                    isProcessing = false;
+                    return;
+                }
+                if (checkTurmaOverlap(newStartMinutes, endMinutes, turma, date)) {
+                    alert("Erro: Existe um conflito de horário na turma.");
+                    cell.setValue(cell.getOldValue());
+                    isProcessing = false;
+                    return;
+                }
+                row.update({
+                    "Início": newStartTime,
+                    "Fim": formatTime(currentEndMinutes),
+                });
+            } else {
+                const endMinutes = newStartMinutes + originalGap;
+                if (checkRoomOverlap(newStartMinutes, endMinutes, room, date)) {
+                    alert("Erro: Existe um conflito de horário na sala de aula.");
+                    cell.setValue(cell.getOldValue());
+                    isProcessing = false;
+                    return;
+                }
+                if (checkTurmaOverlap(newStartMinutes, endMinutes, turma, date)) {
+                    alert("Erro: Existe um conflito de horário na turma.");
+                    cell.setValue(cell.getOldValue());
+                    isProcessing = false;
+                    return;
+                }
+                const adjustedEndMinutes = newStartMinutes + originalGap;
+                row.update({
+                    "Início": newStartTime,
+                    "Fim": formatTime(adjustedEndMinutes),
+                });
+            }
+        } else {
+            const endMinutes = newStartMinutes + originalGap;
+            if (checkRoomOverlap(newStartMinutes, endMinutes, room, date)) {
                 alert("Erro: Existe um conflito de horário na sala de aula.");
                 cell.setValue(cell.getOldValue());
                 isProcessing = false;
                 return;
-                }
-                if (checkTurmaOverlap(newStartMinutes, endMinutes, turma, date)) {
-                 alert("Erro: Existe um conflito de horário na turma.");
+            }
+            if (checkTurmaOverlap(newStartMinutes, endMinutes, turma, date)) {
+                alert("Erro: Existe um conflito de horário na turma.");
                 cell.setValue(cell.getOldValue());
                 isProcessing = false;
                 return;
-                }
-            const adjustedEndMinutes = newStartMinutes + originalGap;
+            }
             row.update({
                 "Início": newStartTime,
-                "Fim": formatTime(adjustedEndMinutes),
+                "Fim": formatTime(currentEndMinutes),
             });
         }
-    } else {
-            const endMinutes= newStartMinutes + originalGap;
-            if (checkRoomOverlap(newStartMinutes, endMinutes, room, date)) {
-            alert("Erro: Existe um conflito de horário na sala de aula.");
+        isProcessing = false;
+    }
+    if (cell.getColumn().getField() === "Fim") {
+        if (isProcessing) return;
+        isProcessing = true;
+        const newEndTime = cell.getValue();
+        const room = row.getData()["Sala da aula"];
+        const date = row.getData()["Dia"];
+        const turma = row.getData()["Turma"];
+
+        if (!newEndTime) {
+            row.update({
+                "Início": "",
+                "Fim": ""
+            });
+            isProcessing = false;
+            return;
+        }
+
+        if (!timeRegex.test(newEndTime)) {
+            alert("Erro: O horário deve ser no formato HH:MM:SS, onde HH está entre 08 e 21 e MM é 00 ou 30.");
             cell.setValue(cell.getOldValue());
             isProcessing = false;
             return;
+        }
+
+        const startTime = row.getData()["Início"];
+        const oldEndTime = cell.getOldValue();
+        const newEndMinutes = parseTime(newEndTime);
+        const currentStartMinutes = parseTime(startTime);
+
+        if (!startTime) {
+            row.update({
+                "Início": "",
+                "Fim": newEndTime
+            });
+            isProcessing = false;
+            return;
+        }
+
+        const originalGap = parseTime(oldEndTime) - currentStartMinutes
+
+        if (newEndMinutes <= currentStartMinutes) {
+            const startMinutes = newEndMinutes - originalGap;
+            if (checkRoomOverlap(startMinutes, newEndMinutes, room, date)) {
+                alert("Erro: Existe um conflito de horário na sala de aula.");
+                cell.setValue(cell.getOldValue());
+                isProcessing = false;
+                return;
             }
-            if (checkTurmaOverlap(newStartMinutes, endMinutes, turma, date)) {
-            alert("Erro: Existe um conflito de horário na turma.");
-            cell.setValue(cell.getOldValue());
-            isProcessing = false;
-            return;
-    }
-        row.update({
-            "Início": newStartTime,
-            "Fim": formatTime(currentEndMinutes),
-        });
-    }
-    isProcessing = false;
-}
-
-// If "Fim" is edited
-if (cell.getColumn().getField() === "Fim") {
-    if (isProcessing) return; // Prevent re-entry
-    isProcessing = true; // Lock the process
-    const newEndTime = cell.getValue();
-    const room = row.getData()["Sala da aula"];
-    const date = row.getData()["Dia"];
-    const turma = row.getData()["Turma"];
-
-    if (!newEndTime) {
-        row.update({
-            "Início": "",
-            "Fim": ""
-        });
-        isProcessing = false;
-        return;
-    }
-
-    if (!timeRegex.test(newEndTime)) {
-        alert("Erro: O horário deve ser no formato HH:MM:SS, onde HH está entre 08 e 21 e MM é 00 ou 30.");
-        cell.setValue(cell.getOldValue());
-        isProcessing = false;
-        return;
-    }
-
-    const startTime = row.getData()["Início"];
-    const oldEndTime = cell.getOldValue();
-    const newEndMinutes = parseTime(newEndTime);
-    const currentStartMinutes = parseTime(startTime);
-
-    if (!startTime) {
-        row.update({
-            "Início": "",
-            "Fim": newEndTime
-        });
-        isProcessing = false;
-        return;
-    }
-
-    const originalGap = parseTime(oldEndTime) - currentStartMinutes
-
-    if(newEndMinutes <= currentStartMinutes){
-        const startMinutes= newEndMinutes - originalGap;
-    if (checkRoomOverlap(startMinutes, newEndMinutes, room, date)) {
-        alert("Erro: Existe um conflito de horário na sala de aula.");
-        cell.setValue(cell.getOldValue());
-        isProcessing = false;
-        return;
-    }
-    if (checkTurmaOverlap(startMinutes, newEndMinutes, turma, date)) {
-        alert("Erro: Existe um conflito de horário na turma.");
-        cell.setValue(cell.getOldValue());
-        isProcessing = false;
-        return;
-    }
+            if (checkTurmaOverlap(startMinutes, newEndMinutes, turma, date)) {
+                alert("Erro: Existe um conflito de horário na turma.");
+                cell.setValue(cell.getOldValue());
+                isProcessing = false;
+                return;
+            }
             row.update({
-        "Início": formatTime(newEndMinutes - originalGap),
-        "Fim": newEndTime,
-        });
-        isProcessing = false;
-            return;
-    }
-
-    const newGap = newEndMinutes - currentStartMinutes;
-
-    if (newGap !== originalGap) {
-        if (confirmGapChange(newGap, originalGap)) {
-
-            if(newGap > MAXGAP ) {
-        if (confirmMaxGapEnd(newGap)) {
-        const startMinutes= newEndMinutes - MAXGAP;
-        if (checkRoomOverlap(startMinutes, newEndMinutes, room, date)) {
-        alert("Erro: Existe um conflito de horário na sala de aula.");
-        cell.setValue(cell.getOldValue());
-        isProcessing = false;
-        return;
-        }
-        if (checkTurmaOverlap(startMinutes, newEndMinutes, turma, date)) {
-        alert("Erro: Existe um conflito de horário na turma.");
-        cell.setValue(cell.getOldValue());
-        isProcessing = false;
-        return;
-        }
-            row.update({
-                "Início": formatTime(newEndMinutes - MAXGAP),
+                "Início": formatTime(newEndMinutes - originalGap),
                 "Fim": newEndTime,
             });
-        } else {
-            row.update({
-                "Início": formatTime(currentStartMinutes),
-                "Fim": cell.getOldValue(),
-            });
+            isProcessing = false;
+            return;
         }
-        isProcessing = false;
-        return;
-    }
-                const startMinutes= newEndMinutes - originalGap;
+
+        const newGap = newEndMinutes - currentStartMinutes;
+
+        if (newGap !== originalGap) {
+            if (confirmGapChange(newGap, originalGap)) {
+
+                if (newGap > MAXGAP) {
+                    if (confirmMaxGapEnd(newGap)) {
+                        const startMinutes = newEndMinutes - MAXGAP;
+                        if (checkRoomOverlap(startMinutes, newEndMinutes, room, date)) {
+                            alert("Erro: Existe um conflito de horário na sala de aula.");
+                            cell.setValue(cell.getOldValue());
+                            isProcessing = false;
+                            return;
+                        }
+                        if (checkTurmaOverlap(startMinutes, newEndMinutes, turma, date)) {
+                            alert("Erro: Existe um conflito de horário na turma.");
+                            cell.setValue(cell.getOldValue());
+                            isProcessing = false;
+                            return;
+                        }
+                        row.update({
+                            "Início": formatTime(newEndMinutes - MAXGAP),
+                            "Fim": newEndTime,
+                        });
+                    } else {
+                        row.update({
+                            "Início": formatTime(currentStartMinutes),
+                            "Fim": cell.getOldValue(),
+                        });
+                    }
+                    isProcessing = false;
+                    return;
+                }
+                const startMinutes = newEndMinutes - originalGap;
+                if (checkRoomOverlap(startMinutes, newEndMinutes, room, date)) {
+                    alert("Erro: Existe um conflito de horário na sala de aula.");
+                    cell.setValue(cell.getOldValue());
+                    isProcessing = false;
+                    return;
+                }
+                if (checkTurmaOverlap(startMinutes, newEndMinutes, turma, date)) {
+                    alert("Erro: Existe um conflito de horário na turma.");
+                    cell.setValue(cell.getOldValue());
+                    isProcessing = false;
+                    return;
+                }
+                row.update({
+                    "Início": startTime,
+                    "Fim": newEndTime,
+                });
+            } else {
+                const adjustedStartMinutes = newEndMinutes - originalGap;
+                if (adjustedStartMinutes < 480) {
+                    alert("Erro: O horário de início ultrapassa o limite das 08:00. Ajuste o intervalo.");
+                    cell.setValue(cell.getOldValue());
+                    isProcessing = false;
+                    return;
+                }
+                const startMinutes = newEndMinutes - newGap;
+                if (checkRoomOverlap(startMinutes, newEndMinutes, room, date)) {
+                    alert("Erro: Existe um conflito de horário na sala de aula.");
+                    cell.setValue(cell.getOldValue());
+                    isProcessing = false;
+                    return;
+                }
+                if (checkTurmaOverlap(startMinutes, newEndMinutes, turma, date)) {
+                    alert("Erro: Existe um conflito de horário na turma.");
+                    cell.setValue(cell.getOldValue());
+                    isProcessing = false;
+                    return;
+                }
+                row.update({
+                    "Início": formatTime(adjustedStartMinutes),
+                    "Fim": newEndTime,
+                });
+            }
+        } else {
+            const startMinutes = newEndMinutes - originalGap;
             if (checkRoomOverlap(startMinutes, newEndMinutes, room, date)) {
                 alert("Erro: Existe um conflito de horário na sala de aula.");
                 cell.setValue(cell.getOldValue());
@@ -1562,74 +1595,30 @@ if (cell.getColumn().getField() === "Fim") {
                 "Início": startTime,
                 "Fim": newEndTime,
             });
-        } else {
-            const adjustedStartMinutes = newEndMinutes - originalGap;
-            if (adjustedStartMinutes < 480) { // 480 = 08:00 in minutes, ensure start time does not go before 08:00
-                alert("Erro: O horário de início ultrapassa o limite das 08:00. Ajuste o intervalo.");
-                cell.setValue(cell.getOldValue());
-                isProcessing = false;
-                return;
-            }
-       const startMinutes= newEndMinutes - newGap;
-            if (checkRoomOverlap(startMinutes, newEndMinutes, room, date)) {
-                alert("Erro: Existe um conflito de horário na sala de aula.");
-                cell.setValue(cell.getOldValue());
-                isProcessing = false;
-                return;
-            }
-            if (checkTurmaOverlap(startMinutes, newEndMinutes, turma, date)) {
-                alert("Erro: Existe um conflito de horário na turma.");
-                cell.setValue(cell.getOldValue());
-                isProcessing = false;
-                return;
-            }
-            row.update({
-                "Início": formatTime(adjustedStartMinutes),
-                "Fim": newEndTime,
-            });
         }
-    } else {
-        const startMinutes= newEndMinutes - originalGap;
-            if (checkRoomOverlap(startMinutes, newEndMinutes, room, date)) {
-                alert("Erro: Existe um conflito de horário na sala de aula.");
-                cell.setValue(cell.getOldValue());
-                isProcessing = false;
-                return;
-            }
-            if (checkTurmaOverlap(startMinutes, newEndMinutes, turma, date)) {
-                alert("Erro: Existe um conflito de horário na turma.");
-                cell.setValue(cell.getOldValue());
-                isProcessing = false;
-                return;
-            }
-        row.update({
-            "Início": startTime,
-            "Fim": newEndTime,
-        });
+        isProcessing = false;
     }
-    isProcessing = false;
-}
     if (cell.getValue() === "Nenhuma característica") {
         cell.setValue("");
         return;
     }
 
-   if (cell.getColumn().getField() === "Dia") {
-    const newDate = cell.getValue();
-    const originalDate = cell.getOldValue();
-    const room = row.getData()["Sala da aula"];
-    const startTime = row.getData()["Início"];
-    const endTime = row.getData()["Fim"];
-    const dateRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
-    if (newDate === "") {
-        return;
-    }
+    if (cell.getColumn().getField() === "Dia") {
+        const newDate = cell.getValue();
+        const originalDate = cell.getOldValue();
+        const room = row.getData()["Sala da aula"];
+        const startTime = row.getData()["Início"];
+        const endTime = row.getData()["Fim"];
+        const dateRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+        if (newDate === "") {
+            return;
+        }
 
-    if (!dateRegex.test(newDate)) {
-        alert("Erro: O formato da data deve ser DD/MM/YYYY.");
-        cell.setValue(originalDate);
-        return;
-    }
+        if (!dateRegex.test(newDate)) {
+            alert("Erro: O formato da data deve ser DD/MM/YYYY.");
+            cell.setValue(originalDate);
+            return;
+        }
 
         const [day, month, year] = newDate.split("/").map(Number);
         const parsedDate = new Date(year, month - 1, day);
@@ -2005,15 +1994,14 @@ document.getElementById("saveChangesButton").addEventListener("click", function 
 });
 
 
-
 function getMatchingRoomsForDropdown() {
 
     if (characteristicsTable.getData().length === 0)
         alert("Selecione um ficheiro de Características de Salas de Aula")
     else {
         const requestedFeatures = document.getElementById("caracteristicas").value
-        ? document.getElementById("caracteristicas").value.toLowerCase().trim().split(",")
-        : [];
+            ? document.getElementById("caracteristicas").value.toLowerCase().trim().split(",")
+            : [];
         const requiredCapacity = parseInt(document.getElementById("inscritos").value, 10) || 0;
 
         if (!requestedFeatures.length || requestedFeatures[0] === "não necessita de sala") {
@@ -2081,8 +2069,8 @@ function populateSalaDropdown() {
 
     matchingRooms.forEach(room => {
         const option = document.createElement("option");
-        option.value = room; // Set option value
-        option.textContent = room; // Set option display text
+        option.value = room;
+        option.textContent = room;
         dropdown.appendChild(option);
     });
 }
@@ -2106,30 +2094,30 @@ function checkAndPopulateSalaDropdown() {
 }
 
 document.getElementById("inscritos").addEventListener("input", () => {
-        isInscritosChanged = true;
-        checkAndPopulateSalaDropdown();
+    isInscritosChanged = true;
+    checkAndPopulateSalaDropdown();
 
 });
 
 document.getElementById("dia").addEventListener("input", () => {
-        isDiaChanged = true;
-        checkAndPopulateSalaDropdown();
+    isDiaChanged = true;
+    checkAndPopulateSalaDropdown();
 
 });
 
 document.getElementById("inicio").addEventListener("input", () => {
-        isInicioChanged = true;
-        checkAndPopulateSalaDropdown();
+    isInicioChanged = true;
+    checkAndPopulateSalaDropdown();
 });
 
 document.getElementById("fim").addEventListener("input", () => {
-        isFimChanged = true;
-        checkAndPopulateSalaDropdown();
+    isFimChanged = true;
+    checkAndPopulateSalaDropdown();
 });
 
 document.getElementById("caracteristicas").addEventListener("change", () => {
-        isCaracteristicasChanged = true;
-        checkAndPopulateSalaDropdown();
+    isCaracteristicasChanged = true;
+    checkAndPopulateSalaDropdown();
 });
 
 function resetFlags() {
