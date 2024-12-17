@@ -132,14 +132,73 @@ let initialWrongCharacteristicsMetrics = null;
 let originalScheduleData = [];
 
 function addNewRow() {
-    if (window.scheduleTable) {
-        window.scheduleTable.addRow({}, true, "top").then(function(row) {
+    const curso = document.getElementById("curso").value;
+    const unidade = document.getElementById("unidade").value;
+    const turno = document.getElementById("turno").value;
+    const turma = document.getElementById("turma").value;
+    const inscritos = document.getElementById("inscritos").value;
+    const diaHelper = document.getElementById("dia").value.split("-");
+    const dia = diaHelper[2] + "/" + diaHelper[1] + "/" + diaHelper[0];
+    const inicio = document.getElementById("inicio").value + ":00";
+    const fim = document.getElementById("fim").value + ":00";
+    const caracteristicas = document.getElementById("caracteristicas").value;
+    const sala = document.getElementById("sala").value;
+    const parsedDate = new Date(diaHelper[0], diaHelper[1] - 1, diaHelper[2]);
+    const dayOfWeek = parsedDate.getDay();
+    const dayOfWeekMapping = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
+        const dayOfWeekName = dayOfWeekMapping[dayOfWeek];
 
+    if (!curso || !unidade || !turno || !turma || !inscritos || !dia || !inicio || !fim || !caracteristicas || !sala) {
+        alert("Por favor, preencha todos os campos.");
+        return;
+    }
+
+    const roomCharacteristics = getRoomCharacteristics(sala);
+
+    const capacidade = roomCharacteristics.capacity;
+    const caracteristicasReais = roomCharacteristics.features;
+
+    if (window.scheduleTable) {
+        const rowData = {
+            "Curso": curso,
+            "Unidade de execução": unidade,
+            "Turno": turno,
+            "Turma": turma,
+            "Inscritos no turno": inscritos,
+            "Dia da Semana": dayOfWeekName,
+            "Início": inicio,
+            "Fim": fim,
+            "Dia": dia,
+            "Características da sala pedida para a aula": caracteristicas,
+            "Sala da aula": sala,
+            "Lotação": capacidade,
+            "Características reais da sala": caracteristicasReais
+        };
+
+        window.scheduleTable.addRow(rowData, true, "top").then(function(row) {
+            console.log("Row added:", row);
+            isInscritosChanged = false;
+            isDiaChanged = false;
+            isInicioChanged = false;
+            isFimChanged = false;
+            isCaracteristicasChanged = false;
+            document.getElementById("curso").value = '';
+            document.getElementById("unidade").value = '';
+            document.getElementById("turno").value = '';
+            document.getElementById("turma").value = '';
+            document.getElementById("inscritos").value = '';
+            document.getElementById("dia").value = '';
+            document.getElementById("inicio").value = '';
+            document.getElementById("fim").value = '';
+
+            document.getElementById("caracteristicas").selectedIndex = 0;
+            document.getElementById("sala").selectedIndex = 0;
+            showMetricBalance();
         }).catch(function(error) {
-            console.error("Error adding empty row:", error);
+            console.error("Error adding row:", error);
         });
     } else {
-        console.error("Table not initialized.");
+        console.error("scheduleTable is not initialized.");
     }
 }
 
@@ -248,7 +307,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     alert("Houve um erro a ler o ficheiro.");
                 },
             });
-
+            populateCharacteristicsDropdown();
         })
         .catch(error => console.error("Erro a carregar ficheiro: ", error));
 });
@@ -259,6 +318,22 @@ function getCharacteristics() {
         .slice(5)
         .map(column => column.getField())
         .filter(field => field !== "Horário sala visível portal público");
+}
+
+function populateCharacteristicsDropdown() {
+    const dropdown = document.getElementById("caracteristicas");
+    const characteristics = getCharacteristics();
+
+    dropdown.innerHTML = '<option value="" disabled selected>Características pedidas</option>';
+
+    console.log(characteristics.length)
+    characteristics.forEach(item => {
+        console.log("AAA")
+        const option = document.createElement("option");
+        option.value = item;
+        option.textContent = item;
+        dropdown.appendChild(option);
+    });
 }
 
 function generateColumns(data) {
@@ -1703,3 +1778,140 @@ document.getElementById("saveChangesButton").addEventListener("click", function 
     link.click();
     URL.revokeObjectURL(url);
 });
+
+
+
+function getMatchingRoomsForDropdown() {
+
+    if (characteristicsTable.getData().length === 0)
+        alert("Selecione um ficheiro de Características de Salas de Aula")
+    else {
+        const requestedFeatures = document.getElementById("caracteristicas").value
+        ? document.getElementById("caracteristicas").value.toLowerCase().trim().split(",")
+        : [];
+        const requiredCapacity = parseInt(document.getElementById("inscritos").value, 10) || 0;
+
+        if (!requestedFeatures.length || requestedFeatures[0] === "não necessita de sala") {
+            return [];
+        }
+
+        if (requestedFeatures.includes("sala/anfiteatro aulas")) {
+            requestedFeatures.push("sala de aulas normal", "anfiteatro aulas");
+        }
+        if (requestedFeatures.includes("lab ista")) {
+            requestedFeatures.push("laboratório de arquitectura de computadores i", "laboratório de arquitectura de computadores ii",
+                "laboratório de bases de engenharia", "laboratório de eletrónica", "laboratório de telecomunicações", "laboratório de informática",
+                "laboratório de redes de computadores i", "laboratório de redes de computadores ii");
+        }
+
+
+        const Date = document.getElementById("dia").value.trim().split("-");
+        const classDate = Date[2] + "/" + Date[1] + "/" + Date[0];
+        const classStart = document.getElementById("inicio").value.trim() + ":00";
+        const classEnd = document.getElementById("fim").value.trim() + ":00";
+        const roomData = characteristicsTable.getData();
+        const scheduleData = scheduleTable.getData();
+        const groupedSchedule = scheduleData.reduce((acc, scheduleRow) => {
+            const key = `${scheduleRow["Sala da aula"].trim()}_${scheduleRow["Dia"].trim()}`;
+            if (!acc[key]) acc[key] = [];
+            acc[key].push({
+                start: scheduleRow["Início"],
+                end: scheduleRow["Fim"]
+            });
+            return acc;
+        }, {});
+        const matchingRooms = roomData.filter(room => {
+            const actualFeatures = Object.keys(room)
+                .filter(col => col !== "Horário sala visível portal público" && room[col] === "X")
+                .map(col => col.replace("Características reais da sala", "").trim().toLowerCase());
+
+            const roomCapacity = parseInt(room["Capacidade Normal"], 10) || 0;
+            const roomName = room["Nome sala"];
+            const hasMatchingFeature = requestedFeatures.some(requestedFeature =>
+                actualFeatures.some(actualFeature =>
+                    actualFeature.includes(requestedFeature.trim().toLowerCase())
+                )
+            );
+            const meetsCapacity = roomCapacity >= requiredCapacity;
+            const roomKey = `${roomName.trim()}_${classDate.trim()}`;
+            const scheduledTimes = groupedSchedule[roomKey] || [];
+            const isRoomAvailable = !scheduledTimes.some(({start, end}) => {
+                return (
+                    (classStart >= start && classStart < end) ||
+                    (classEnd > start && classEnd <= end) ||
+                    (classStart <= start && classEnd >= end)
+                );
+            });
+            return hasMatchingFeature && meetsCapacity && isRoomAvailable;
+        });
+        return matchingRooms.map(room => room["Nome sala"]);
+    }
+}
+
+function populateSalaDropdown() {
+    const dropdown = document.getElementById("sala");
+    const matchingRooms = getMatchingRoomsForDropdown();
+
+    dropdown.innerHTML = '<option value="" disabled selected>Sala</option>';
+
+    matchingRooms.forEach(room => {
+        const option = document.createElement("option");
+        option.value = room; // Set option value
+        option.textContent = room; // Set option display text
+        dropdown.appendChild(option);
+    });
+}
+
+let isInscritosChanged = false;
+let isDiaChanged = false;
+let isInicioChanged = false;
+let isFimChanged = false;
+let isCaracteristicasChanged = false;
+
+function checkAndPopulateSalaDropdown() {
+    if (
+        isInscritosChanged &&
+        isDiaChanged &&
+        isInicioChanged &&
+        isFimChanged &&
+        isCaracteristicasChanged
+    ) {
+        populateSalaDropdown();
+    }
+}
+
+document.getElementById("inscritos").addEventListener("input", () => {
+        isInscritosChanged = true;
+        checkAndPopulateSalaDropdown();
+
+});
+
+document.getElementById("dia").addEventListener("input", () => {
+        isDiaChanged = true;
+        checkAndPopulateSalaDropdown();
+
+});
+
+document.getElementById("inicio").addEventListener("input", () => {
+        isInicioChanged = true;
+        checkAndPopulateSalaDropdown();
+});
+
+document.getElementById("fim").addEventListener("input", () => {
+        isFimChanged = true;
+        checkAndPopulateSalaDropdown();
+});
+
+document.getElementById("caracteristicas").addEventListener("change", () => {
+        isCaracteristicasChanged = true;
+        checkAndPopulateSalaDropdown();
+});
+
+function resetFlags() {
+    isInscritosChanged = false;
+    isDiaChanged = false;
+    isInicioChanged = false;
+    isFimChanged = false;
+    isCaracteristicasChanged = false;
+}
+
