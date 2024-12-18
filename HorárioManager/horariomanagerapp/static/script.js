@@ -132,7 +132,6 @@ let initialWrongCharacteristicsMetrics = null;
 let originalScheduleData = [];
 
 function addNewRow() {
-    console.log(isInscritosChanged)
     const curso = document.getElementById("curso").value;
     const unidade = document.getElementById("unidade").value;
     const turno = document.getElementById("turno").value;
@@ -196,7 +195,6 @@ function addNewRow() {
             showMetricBalance();
             resetFlags();
             clearSalaDropdown();
-            console.log(isInscritosChanged)
         }).catch(function (error) {
             console.error("Error adding row:", error);
         });
@@ -391,6 +389,7 @@ function generateColumns(data) {
                 editor: characteristicsTable.getData().length === 0 ? false : "list",
                 editorParams: function () {
                     const characteristics = getCharacteristics();
+                    characteristics.unshift("Não necessita de Sala");
                     return {
                         values: characteristics.length > 0
                             ? ["Nenhuma característica", ...characteristics]
@@ -423,6 +422,7 @@ function onCharacteristicsTableLoaded() {
                 editor: characteristicsTable.getData().length === 0 ? false : "list",
                 editorParams: function () {
                     const characteristics = getCharacteristics();
+                    characteristics.unshift("Não necessita de Sala");
                     return {
                         values: characteristics.length > 0
                             ? ["Nenhuma característica", ...characteristics]
@@ -464,6 +464,29 @@ var headerMenu = function () {
 
     return menu;
 };
+
+scheduleTable.on("cellEditing", function (cell) {
+    row = cell.getRow();
+    const caracteristicas = row.getData()["Características da sala pedida para a aula"];
+    const sala = row.getData()["Sala da aula"];
+    if(cell.getColumn().getField() === "Dia" && cell.getValue() === ""){
+        if(caracteristicas === ""){
+            alert("Selecione Características para a sala");
+            return;
+        }
+        if(sala === ""){
+            alert("Selecione uma Sala");
+            return;
+        }
+        const recommendedDates = recommendAlternativeDates(row.getData());
+                if (recommendedDates.length > 0) {
+                    displayRecommendationsPopup(recommendedDates, row);
+                } else {
+                    alert("Não há alternativas disponíveis.");
+                }
+                return;
+    }
+});
 
 document.getElementById("overcrowdedFilterButton").addEventListener("click", function () {
 
@@ -1765,11 +1788,14 @@ const parseTime = (timeStr) => {
 function recommendAlternativeDates(scheduleRow) {
     const allScheduleData = scheduleTable.getData();
     const room = scheduleRow["Sala da aula"];
-    const date = scheduleRow["Dia"];
+    let date = scheduleRow["Dia"];
     const startTime = scheduleRow["Início"];
     const endTime = scheduleRow["Fim"];
     const turma = scheduleRow["Turma"];
     const courseType = turma.includes("PL") ? "Pós-laboral" : "Diurno";
+    if(date === ""){
+        date = new Date(2022, 8, 12);
+    }
     let minStartTime, maxStartTime;
     if (courseType === "Diurno") {
         minStartTime = parseTime("08:00:00");
@@ -1779,7 +1805,7 @@ function recommendAlternativeDates(scheduleRow) {
         maxStartTime = parseTime("21:00:00");
     }
     const startDate = parseDate(date);
-    const maxDateRange = 28;
+    const maxDateRange = 40;
     const recommendedDates = [];
     const lastFridayBeforeChristmas = getLastFridayBeforeChristmas(new Date(startDate));
     for (let dayOffset = 1; dayOffset <= maxDateRange; dayOffset++) {
