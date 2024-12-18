@@ -132,6 +132,7 @@ let initialWrongCharacteristicsMetrics = null;
 let originalScheduleData = [];
 
 function addNewRow() {
+    console.log(isInscritosChanged)
     const curso = document.getElementById("curso").value;
     const unidade = document.getElementById("unidade").value;
     const turno = document.getElementById("turno").value;
@@ -193,6 +194,9 @@ function addNewRow() {
             document.getElementById("caracteristicas").selectedIndex = 0;
             document.getElementById("sala").selectedIndex = 0;
             showMetricBalance();
+            resetFlags();
+            clearSalaDropdown();
+            console.log(isInscritosChanged)
         }).catch(function (error) {
             console.error("Error adding row:", error);
         });
@@ -327,6 +331,22 @@ function populateCharacteristicsDropdown() {
         option.textContent = item;
         dropdown.appendChild(option);
     });
+}
+
+function clearSalaDropdown() {
+    const dropdown = document.getElementById("sala");
+
+    // Clear all existing options
+    dropdown.innerHTML = "";
+
+    // Add only one specific option
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Sala"; // The desired text
+    option.disabled = true;
+    option.selected = true;
+
+    dropdown.appendChild(option);
 }
 
 function generateColumns(data) {
