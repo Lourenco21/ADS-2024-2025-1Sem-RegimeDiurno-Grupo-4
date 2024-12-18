@@ -1232,7 +1232,7 @@ let isProcessing = false;
 
 scheduleTable.on("cellEdited", function (cell) {
     const row = cell.getRow();
-    const timeRegex = /^(0[8-9]|1[0-9]|20|21):([03]0):00$/;
+    const timeRegex = /^(0[8-9]|1[0-9]|20):([03]0):00$|^21:00:00$/;
 
 const parseTime = (timeStr) => {
     const [hours, minutes] = timeStr.split(":").map(Number);
