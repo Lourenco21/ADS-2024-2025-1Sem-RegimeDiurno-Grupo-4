@@ -334,13 +334,11 @@ function populateCharacteristicsDropdown() {
 function clearSalaDropdown() {
     const dropdown = document.getElementById("sala");
 
-    // Clear all existing options
     dropdown.innerHTML = "";
 
-    // Add only one specific option
     const option = document.createElement("option");
     option.value = "";
-    option.textContent = "Sala"; // The desired text
+    option.textContent = "Sala";
     option.disabled = true;
     option.selected = true;
 
@@ -1840,7 +1838,7 @@ function recommendAlternativeDates(scheduleRow) {
                             startTime: formatTime(potentialStartTime),
                             endTime: formatTime(potentialEndTime),
                         });
-                        if (recommendedDates.length >= 3) return recommendedDates;
+                        if (recommendedDates.length >= 10) return recommendedDates;
                     }
                 }
             }
@@ -1863,7 +1861,7 @@ function recommendAlternativeDates(scheduleRow) {
                     startTime: formatTime(finalPotentialStartTime),
                     endTime: formatTime(finalPotentialEndTime),
                 });
-                if (recommendedDates.length >= 3) return recommendedDates;
+                if (recommendedDates.length >= 20) return recommendedDates;
             }
         }
     }

@@ -61,10 +61,10 @@ function generateColumns(data) {
                 headerWordWrap: true,
                 editor: "list",
                 editorParams: function (cell) {
-                    const rowData = cell.getRow().getData(); // Get data of the current row
-                    const matchingRooms = getMatchingRooms(rowData); // Get the matching rooms based on row data
+                    const rowData = cell.getRow().getData();
+                    const matchingRooms = getMatchingRooms(rowData);
                     const roomOptions = matchingRooms.length > 0 ? matchingRooms : ["Não há salas disponiveis"];
-                    roomOptions.unshift("Sem sala");  // Add an empty string option to the beginning
+                    roomOptions.unshift("Sem sala");
                     return {
                         values: roomOptions
                     };
@@ -79,13 +79,13 @@ function generateColumns(data) {
                 headerFilter: "input",
                 headerFilterPlaceholder: "Search...",
                 headerWordWrap: true,
-                editor: characteristicsTable.getData().length === 0 ? false : "list", // Disable editor if no data
+                editor: characteristicsTable.getData().length === 0 ? false : "list",
                 editorParams: function () {
                     const characteristics = getCharacteristics();
                     return {
                         values: characteristics.length > 0
                             ? ["Nenhuma característica", ...characteristics]
-                            : ["Sem características disponíveis"] // Fallback value if no characteristics
+                            : ["Sem características disponíveis"]
                     };
                 }
             };
@@ -93,8 +93,8 @@ function generateColumns(data) {
         return {
             title: field.charAt(0).toUpperCase() + field.slice(1),
             field: field,
-            headerMenu: headerMenu, // Add header menu to each column
-            headerFilter: "input",  // Enable input filter for each column
+            headerMenu: headerMenu,
+            headerFilter: "input",
             headerFilterPlaceholder: "Search...",
             headerWordWrap: true,
             editor: !nonEditableColumns.includes(field)
@@ -107,13 +107,12 @@ var headerMenu = function () {
     var columns = this.getColumns();
 
     for (let column of columns) {
-        // Create checkbox element
+
         let checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.checked = column.isVisible();
         checkbox.style.marginRight = "10px";
 
-        // Create label
         let label = document.createElement("span");
         let title = document.createElement("span");
         title.textContent = column.getDefinition().title;
@@ -121,17 +120,14 @@ var headerMenu = function () {
         label.appendChild(checkbox);
         label.appendChild(title);
 
-        // Create menu item
         menu.push({
             label: label,
             action: function (e) {
-                // Prevent menu closing
+
                 e.stopPropagation();
 
-                // Toggle current column visibility
                 column.toggle();
 
-                // Update checkbox state
                 checkbox.checked = column.isVisible();
             },
         });
@@ -142,21 +138,18 @@ var headerMenu = function () {
 };
 
 function saveCharacteristicsChanges(characteristicsId) {
-    const tableData = characteristicsTable.getData(); // Get all data from Tabulator
+    const tableData = characteristicsTable.getData();
 
     if (!tableData || tableData.length === 0) {
         alert("No data available to save.");
         return;
     }
 
-    // Convert data back to CSV
     const csvContent = Papa.unparse(tableData);
 
-    // Create a Blob from the CSV content
     const csvBlob = new Blob([csvContent], {type: "text/csv"});
     const fileName = "updated_characteristics.csv";
 
-    // Append the Blob to FormData
     const formData = new FormData();
     formData.append("file", csvBlob, fileName);
 
@@ -178,7 +171,6 @@ function saveCharacteristicsChanges(characteristicsId) {
         });
 }
 
-// Add event listener to the button
 document.addEventListener("DOMContentLoaded", function () {
     const storeChangesButton = document.getElementById("storeChangesButton");
 
@@ -198,7 +190,7 @@ document.getElementById("saveChangesButton").addEventListener("click", function 
     const scriptTag = document.querySelector('script[characteristics-id]');
     const characteristicsId = scriptTag.getAttribute("characteristics-id");
     saveCharacteristicsChanges(characteristicsId);
-    const modifiedData = characteristicsTable.getData(); // Get the current table data
+    const modifiedData = characteristicsTable.getData();
 
     if (modifiedData.length === 0) {
         alert("Não há um ficheiro para guardar!");
